@@ -1,3 +1,4 @@
+import 'start_page.dart';
 import 'send_page.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,7 +15,7 @@ class LookupApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LookupHomePage(),
+      home: StartPage(), // ✅ 첫 화면을 StartPage로 변경
     );
   }
 }
