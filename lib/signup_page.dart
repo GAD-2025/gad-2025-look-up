@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'main.dart'; // ✅ 메인 페이지 import 추가
+import 'main.dart'; // ✅ 메인 페이지 import
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -18,9 +18,8 @@ class _SignupPageState extends State<SignupPage> {
   bool _isValidNickname = false;
   bool _showNicknameError = false;
 
-  // ✅ 아이디: 영문 소문자 + 숫자 조합 4~20자
+  // ✅ 정규식 규칙
   final RegExp _idRegExp = RegExp(r'^(?=.*[a-z])(?=.*\d)[a-z0-9]{4,20}$');
-  // ✅ 닉네임: 한글 또는 영문 10자 이내
   final RegExp _nicknameRegExp = RegExp(r'^[a-zA-Z가-힣]{1,10}$');
 
   void _validateId() {
@@ -108,6 +107,23 @@ class _SignupPageState extends State<SignupPage> {
                         horizontal: 16,
                         vertical: 14,
                       ),
+                      // ✅ X 아이콘 추가
+                      suffixIcon: _idController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.cancel_rounded,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _idController.clear();
+                                  _isValidId = false;
+                                  _showIdError = false;
+                                });
+                              },
+                            )
+                          : null,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
@@ -197,6 +213,23 @@ class _SignupPageState extends State<SignupPage> {
                   horizontal: 16,
                   vertical: 14,
                 ),
+                // ✅ 닉네임에도 X 아이콘 추가
+                suffixIcon: _nicknameController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.cancel_rounded,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _nicknameController.clear();
+                            _isValidNickname = false;
+                            _showNicknameError = false;
+                          });
+                        },
+                      )
+                    : null,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
@@ -225,7 +258,7 @@ class _SignupPageState extends State<SignupPage> {
 
             const SizedBox(height: 50),
 
-            // 🔹 가입 완료 버튼 → 메인 피드(LOoK UP 화면)
+            // 🔹 가입 완료 버튼
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -236,9 +269,9 @@ class _SignupPageState extends State<SignupPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const LookupHomePage(), // ✅ main.dart의 홈화면 실행
+                                const LookupHomePage(), // ✅ 메인 페이지로 이동
                           ),
-                          (route) => false, // 뒤로가기 불가
+                          (route) => false,
                         );
                       }
                     : null,
