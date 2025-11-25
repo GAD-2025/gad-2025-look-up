@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
 import 'signup_page.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 class StartPage extends StatelessWidget {
   const StartPage({super.key});
+
+  // 🔥 로그인 결과를 true/false로 알려주는 함수
+  Future<bool> loginWithKakao() async {
+    try {
+      bool isInstalled = await isKakaoTalkInstalled();
+
+      if (isInstalled) {
+        await UserApi.instance.loginWithKakaoTalk();
+      } else {
+        await UserApi.instance.loginWithKakaoAccount();
+      }
+
+      print("로그인 성공!");
+      return true;  // 성공
+    } catch (error) {
+      print("카카오 로그인 실패: $error");
+      return false; // 실패
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +34,6 @@ class StartPage extends StatelessWidget {
           children: [
             const Spacer(),
 
-            // 🟡 로고
             Center(child: Image.asset('assets/logo.png', height: 50)),
 
             const Spacer(),
@@ -32,11 +51,14 @@ class StartPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  icon: const Icon(
-                    Icons.chat_bubble_rounded,
-                    color: Colors.black,
-                  ),
-                  onPressed: () {
+                  icon: const Icon(Icons.chat_bubble_rounded, color: Colors.black),
+
+                  // ⭐ 여기가 핵심 수정
+                  onPressed: () async {
+                    final success = await loginWithKakao();
+
+                    if (!success) return; // 실패하면 이동 X
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -44,6 +66,7 @@ class StartPage extends StatelessWidget {
                       ),
                     );
                   },
+
                   label: const Text(
                     '카카오톡으로 시작하기',
                     style: TextStyle(

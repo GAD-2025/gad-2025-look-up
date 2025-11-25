@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  kakao_flutter_sdk_user: ^1.8.0
 
 
   geolocator: ^10.1.0

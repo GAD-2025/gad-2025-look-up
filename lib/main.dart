@@ -3,8 +3,12 @@ import 'send_page.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 void main() {
+  KakaoSdk.init(
+    nativeAppKey: '03033934ad0bba787529944420a0e059', // 네이티브 앱 키
+  );
   runApp(const LookupApp());
 }
 
