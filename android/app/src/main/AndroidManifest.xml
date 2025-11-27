@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.lookup_app">  <!-- ✅ 여기: MainActivity.kt 의 package 와 동일하게 수정 -->
 
     <!-- 인터넷 권한 -->
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -13,27 +14,28 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- 카카오 네이티브 앱 키 -->
+        <!-- ✅ 카카오 네이티브 앱 키 (정확한 값!) -->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
-            android:value="03033934ad0bba787529944420a0e059" />
+            android:value="3033934ad0bba787529944420a0e059" />
 
-        <!-- 카카오 인증 결과를 받는 Activity (⚠️ 반드시 필요) -->
+        <!-- ✅ 카카오 인증 결과를 받는 Activity -->
         <activity
             android:name="com.kakao.sdk.flutter.AuthCodeCustomTabsActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- 여기 scheme이 앱의 리다이렉트 URI와 연결됨 -->
-                <data android:scheme="kakao03033934ad0bba787529944420a0e059" />
+                <!-- ✅ Redirect URI: kakao{네이티브키}://oauth -->
+                <data
+                android:scheme="kakao03033934ad0bba787529944420a0e059"
+                android:host="oauth" />
             </intent-filter>
         </activity>
 
-        <!-- 메인 Activity -->
+        <!-- ✅ Flutter 메인 Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,16 +47,18 @@
             android:windowSoftInputMode="adjustResize">
 
             <meta-data
-                android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme" />
+            android:name="com.kakao.sdk.AppKey"
+            android:value="03033934ad0bba787529944420a0e059" />  <!-- ✅ 0303… 으로 수정 -->
 
+
+            <!-- ✅ 앱 시작점: MAIN + LAUNCHER -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- 플러터용 -->
+        <!-- 플러터 엔진 버전 표시 -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
