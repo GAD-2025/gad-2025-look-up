@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'main.dart'; // ✅ 메인 페이지 import
 import 'package:flutter/cupertino.dart'; // 추가
+import 'package:http/http.dart' as http; // Import http package
+import 'dart:convert'; // Import dart:convert for JSON encoding/decoding
 
 
 class SignupPage extends StatefulWidget {
@@ -15,9 +17,53 @@ class _SignupPageState extends State<SignupPage> {
 bool _isIdChecked = false;
 bool _isIdAvailable = false;
 
-Future<bool> _checkIdDuplicated(String id) async {
-  await Future.delayed(const Duration(milliseconds: 300));
-  return id == 'gad123';
+  void _showAlertDialog(String title, String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('확인'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+Future<bool?> _checkIdDuplicated(String id) async {
+  try {
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:3000/check-id-duplication'), // Your backend URL for Android emulator
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'id': id,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return responseData['isDuplicated'];
+    } else {
+      // Handle non-200 status codes as server errors
+      _showAlertDialog('오류', '서버 오류가 발생했습니다 (${response.statusCode}). 다시 시도해주세요.');
+      print('Failed to check ID duplication: ${response.statusCode}');
+      return null; // Indicate an error occurred
+    }
+  } catch (e) {
+    // Handle network errors
+    _showAlertDialog('오류', '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
+    print('Error checking ID duplication: $e');
+    return null; // Indicate an error occurred
+  }
 }
 
   final TextEditingController _idController = TextEditingController();
@@ -210,7 +256,18 @@ CupertinoDialogAction(
                       ? () async {
                         final id = _idController.text.trim();
                         if (id.isEmpty) return;
-                        final isDuplicated = await _checkIdDuplicated(id);
+                        final bool? isDuplicated = await _checkIdDuplicated(id); // Use nullable bool
+                        
+                        if (isDuplicated == null) {
+                          // An error occurred and _showAlertDialog was already called by _checkIdDuplicated
+                          // No further action needed here for showing dialogs, but reset check status
+                           setState(() {
+                            _isIdChecked = false;
+                            _isIdAvailable = false;
+                          });
+                          return;
+                        }
+
                         setState(() {
                           _isIdChecked = true;          // 중복확인 버튼 눌렀다 표시
                           _isIdAvailable = !isDuplicated; // 사용 가능 여부 저장
