@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'main.dart'; // ✅ 메인 페이지 import
+import 'package:flutter/cupertino.dart'; // 추가
+
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -10,6 +12,14 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
+bool _isIdChecked = false;
+bool _isIdAvailable = false;
+
+Future<bool> _checkIdDuplicated(String id) async {
+  await Future.delayed(const Duration(milliseconds: 300));
+  return id == 'gad123';
+}
+
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _nicknameController = TextEditingController();
 
@@ -23,13 +33,18 @@ class _SignupPageState extends State<SignupPage> {
   final RegExp _nicknameRegExp = RegExp(r'^[a-zA-Z가-힣]{1,10}$');
 
   void _validateId() {
-    final text = _idController.text.trim();
-    final isValid = _idRegExp.hasMatch(text);
-    setState(() {
-      _isValidId = isValid;
-      _showIdError = text.isNotEmpty && !isValid;
-    });
-  }
+  final text = _idController.text.trim();
+  final isValid = _idRegExp.hasMatch(text);
+  setState(() {
+    _isValidId = isValid;
+    _showIdError = text.isNotEmpty && !isValid;
+
+    // ✅ 아이디를 수정하는 순간, 이전 중복확인 결과는 무효화
+    _isIdChecked = false;
+    _isIdAvailable = false;
+  });
+}
+
 
   void _validateNickname() {
     final text = _nicknameController.text.trim();
@@ -39,6 +54,50 @@ class _SignupPageState extends State<SignupPage> {
       _showNicknameError = text.isNotEmpty && !isValid;
     });
   }
+
+void _showDuplicateDialog(BuildContext context) {
+  showCupertinoDialog(
+    context: context,
+    builder: (_) => CupertinoAlertDialog(
+      title: const Text('사용 중인 아이디입니다.'),
+      content: const Padding(
+        padding: EdgeInsets.only(top: 8.0),
+        child: Text(
+          '이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.',
+        ),
+      ),
+      actions: [
+        CupertinoDialogAction(
+  isDestructiveAction: true, // 🔥 빨간색 버튼!
+  onPressed: () => Navigator.of(context).pop(),
+  child: const Text('확인'),
+),
+
+
+
+      ],
+    ),
+  );
+}
+
+void _showAvailableDialog(BuildContext context) {
+  showCupertinoDialog(
+    context: context,
+    builder: (_) => CupertinoAlertDialog(
+      title: const Text('사용 가능한 아이디입니다.'),
+      actions: [
+CupertinoDialogAction(
+  isDefaultAction: true,
+  onPressed: () => Navigator.of(context).pop(),
+  child: const Text('확인'),
+),
+
+
+      ],
+    ),
+  );
+}
+
 
   @override
   void initState() {
@@ -56,7 +115,9 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canSubmit = _isValidId && _isValidNickname;
+    final bool canSubmit =
+    _isValidId && _isValidNickname && _isIdChecked && _isIdAvailable;
+
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -146,15 +207,22 @@ class _SignupPageState extends State<SignupPage> {
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _isValidId
-                          ? () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('중복확인 요청'),
-                                  duration: Duration(seconds: 1),
-                                ),
-                              );
-                            }
-                          : null,
+                      ? () async {
+                        final id = _idController.text.trim();
+                        if (id.isEmpty) return;
+                        final isDuplicated = await _checkIdDuplicated(id);
+                        setState(() {
+                          _isIdChecked = true;          // 중복확인 버튼 눌렀다 표시
+                          _isIdAvailable = !isDuplicated; // 사용 가능 여부 저장
+                        });
+                        if (isDuplicated) {
+                          _showDuplicateDialog(context);   // ❌ 사용 중인 아이디 팝업
+                        } else {
+                          _showAvailableDialog(context);   // ✅ 사용 가능한 아이디 팝업
+                        }
+                     }
+                    : null,
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isValidId
                             ? Colors.black
@@ -201,9 +269,9 @@ class _SignupPageState extends State<SignupPage> {
             const SizedBox(height: 8),
             TextField(
               controller: _nicknameController,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z가-힣]')),
-              ],
+             // inputFormatters: [
+             //   FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z가-힣]')),
+             // ],
               decoration: InputDecoration(
                 hintText: '닉네임',
                 hintStyle: const TextStyle(color: Colors.black38),
