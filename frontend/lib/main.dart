@@ -17,9 +17,14 @@ class LookupApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: StartPage(), // ✅ 첫 화면을 StartPage로 변경
+
+      theme: ThemeData(
+        fontFamily: 'Pretendard',
+      ),
+      
+      home: const StartPage(), // ✅ 첫 화면을 StartPage로 변경
     );
   }
 }
