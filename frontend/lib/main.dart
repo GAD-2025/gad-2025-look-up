@@ -170,7 +170,20 @@ class _LookupHomePageState extends State<LookupHomePage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // ✅ 본문 내용
-      body: _hasFeed ? _buildFeedView() : _buildEmptyView(),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: _hasFeed ? _buildFeedView() : _buildEmptyView(),
+          ),
+          Positioned(
+            bottom: 50,
+            left: 0,
+            right: 0,
+            child: Center(child: _buildBubble()),
+          )
+        ],
+      ),
+
     );
   }
 
@@ -214,7 +227,6 @@ class _LookupHomePageState extends State<LookupHomePage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 80),
-          _buildBubble(),
         ],
       ),
     );
@@ -252,7 +264,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
     );
   }
 
-  // 💬 회색 말풍선
+  // 💬 플로팅 버튼 위 회색 툴팁
   Widget _buildBubble() {
     return Stack(
       alignment: Alignment.bottomCenter,
