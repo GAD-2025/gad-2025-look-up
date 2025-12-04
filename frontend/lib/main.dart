@@ -118,44 +118,71 @@ class _LookupHomePageState extends State<LookupHomePage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: Colors.black87,
+            icon: Image.asset(
+              'assets/icons/bell_icon.png',
+              width: 22,
+              height: 22,
             ),
-            onPressed: () {},
+            onPressed: () {
+              // TODO: 알림 페이지 연결 예정
+            },
           ),
         ],
       ),
 
       // 하단 네비게이션
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10,
-        child: SizedBox(
-          height: 65,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home, color: Colors.black),
-                  Text('피드', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-              SizedBox(width: 50),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.person_outline, color: Colors.grey),
-                  Text(
-                    '마이로그',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08), // 아주 은은한 그림자
+              offset: const Offset(0, -2), // 위쪽으로 향하는 그림자
+              blurRadius: 8, // 부드럽게 퍼지게
+            ),
+          ],
+        ),
+        child: BottomAppBar(
+          color: Colors.transparent,
+          elevation: 0, // 자체 그림자 제거
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 10,
+          child: SizedBox(
+            height: 65,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/icons/home_icon.png',
+                      width: 22,
+                      height: 22,
+                    ),
+                    const Text(
+                      '피드',
+                      style: TextStyle(fontSize: 12, color: Colors.black),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 50),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/icons/person_icon.png',
+                      width: 22,
+                      height: 22,
+                    ),
+                    const Text(
+                      '마이로그',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -165,7 +192,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
         backgroundColor: Colors.black,
         elevation: 6,
         shape: const CircleBorder(),
-        child: Image.asset('assets/lookup_icon.png', width: 30, height: 30),
+        child: Image.asset('assets/lookup_icon.png', width: 35, height: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
@@ -176,47 +203,58 @@ class _LookupHomePageState extends State<LookupHomePage> {
 
   // ✅ 피드가 없을 때 (기존 화면)
   Widget _buildEmptyView() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 120,
-            height: 90,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.location_on, color: Colors.grey, size: 26),
-                const SizedBox(height: 4),
-                Text(
-                  _currentLocation,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+    return Stack(
+      children: [
+        // 가운데 콘텐츠 (위치, 안내문 등)
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 120,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.grey, size: 26),
+                    const SizedBox(height: 4),
+                    Text(
+                      _currentLocation,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              const Text(
+                '아직 피드가 없어요',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '먼저 알림을 보내 주변 풍경을 공유해봐요!',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 30),
-          const Text(
-            '아직 피드가 없어요',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '먼저 알림을 보내 주변 풍경을 공유해봐요!',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 80),
-          _buildBubble(),
-        ],
-      ),
+        ),
+
+        // 💬 말풍선을 플로팅 버튼 바로 위에 배치
+        Positioned(
+          bottom: 50, // ← 말풍선과 플로팅 버튼 사이의 간격
+          left: 0,
+          right: 0,
+          child: Center(child: _buildBubble()),
+        ),
+      ],
     );
   }
 
@@ -256,6 +294,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
   Widget _buildBubble() {
     return Stack(
       alignment: Alignment.bottomCenter,
+      clipBehavior: Clip.none, // ✅ 꼬리가 영역 밖으로 나가도 보이게
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
@@ -282,9 +321,9 @@ class _LookupHomePageState extends State<LookupHomePage> {
           ),
         ),
         Positioned(
-          bottom: -8,
+          bottom: -12, // 👈 꼬리 위치를 좀 더 아래로
           child: CustomPaint(
-            size: const Size(20, 10),
+            size: const Size(20, 12),
             painter: _BubbleTailPainter(),
           ),
         ),

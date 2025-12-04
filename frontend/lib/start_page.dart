@@ -17,7 +17,7 @@ class StartPage extends StatelessWidget {
       }
 
       print("로그인 성공!");
-      return true;  // 성공
+      return true; // 성공
     } catch (error) {
       print("카카오 로그인 실패: $error");
       return false; // 실패
@@ -34,89 +34,110 @@ class StartPage extends StatelessWidget {
           children: [
             const Spacer(),
 
+            // 🟡 로고
             Center(child: Image.asset('assets/logo.png', height: 50)),
 
             const Spacer(),
 
-            // 🟨 카카오 버튼
+            // 🔹 좌우 여백 추가된 버튼 섹션
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEE500),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.chat_bubble_rounded, color: Colors.black),
-
-                  // ⭐ 여기가 핵심 수정
-                  onPressed: () async {
-                    final success = await loginWithKakao();
-
-                    if (!success) return; // 실패하면 이동 X
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SignupPage(),
+              padding: const EdgeInsets.symmetric(horizontal: 28), // ✅ 좌우 여백 추가
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 🟨 카카오 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFFFEE500),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                       ),
-                    );
-                  },
-
-                  label: const Text(
-                    '카카오톡으로 시작하기',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // 🟩 네이버 버튼
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 4),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF03C75A),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Text(
-                    'N',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.white,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SignupPage(),
+                      onPressed: () async {
+                        final success = await loginWithKakao();
+                        if (!success) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignupPage(),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Image.asset(
+                              'assets/icons/kakao_icon.png',
+                              width: 20,
+                              height: 20,
+                            ),
+                          ),
+                          const Text(
+                            '카카오톡으로 시작하기',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                  label: const Text(
-                    '네이버로 시작하기',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 10),
+
+                  // 🟩 네이버 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: const Color(0xFF03C75A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignupPage(),
+                          ),
+                        );
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Image.asset(
+                              'assets/icons/naver_icon.png',
+                              width: 15,
+                              height: 15,
+                            ),
+                          ),
+                          const Text(
+                            '네이버로 시작하기',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
