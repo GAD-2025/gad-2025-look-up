@@ -73,3 +73,7 @@ jspm_packages/
 .husky/
 .eslintcache
 .prettiercache
+
+.dart_tool/
+build/
+.idea/

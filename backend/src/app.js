@@ -1,6 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const db = require('./config/db'); // Import the database connection
+
+// ⭐ CORS 허용
+app.use(cors());
 
 // Middleware
 app.use(express.json()); // for parsing application/json
