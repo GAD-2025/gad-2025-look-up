@@ -61,7 +61,7 @@ class _SignupPageState extends State<SignupPage> {
   Future<bool?> _checkIdDuplicated(String id) async {
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/check-id-duplication'),
+        Uri.parse('https://route.nois.club:3004/check-id-duplication'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
