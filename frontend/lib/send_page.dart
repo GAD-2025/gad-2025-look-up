@@ -70,7 +70,6 @@ class _SendPageState extends State<SendPage> {
                 style: const TextStyle(fontSize: 40),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  hintText: '😀',
                   hintStyle: TextStyle(color: Colors.grey, fontSize: 32),
                 ),
               ),
