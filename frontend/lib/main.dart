@@ -6,9 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 void main() {
-  KakaoSdk.init(
-    nativeAppKey: '03033934ad0bba787529944420a0e059', // 네이티브 앱 키
-  );
+  KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
   runApp(const LookupApp());
 }
 
@@ -19,7 +17,7 @@ class LookupApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: StartPage(), // ✅ 첫 화면을 StartPage로 변경
+      home: StartPage(),
     );
   }
 }
@@ -33,8 +31,13 @@ class LookupHomePage extends StatefulWidget {
 
 class _LookupHomePageState extends State<LookupHomePage> {
   String _currentLocation = '위치 불러오는 중...';
-  String? _emoji; // 이모티콘 저장
-  bool _hasFeed = false; // ✅ 피드 전송 여부
+  String? _emoji;
+  bool _hasFeed = false;
+
+  int _remainingSeconds = 0;
+  bool _showTimer = false;
+  bool _isTimeout = false;
+  bool _isButtonDisabled = false;
 
   @override
   void initState() {
@@ -95,9 +98,88 @@ class _LookupHomePageState extends State<LookupHomePage> {
     if (result != null && result is String && result.isNotEmpty) {
       setState(() {
         _emoji = result;
-        _hasFeed = true; // ✅ 피드 전송 완료
+        _hasFeed = true;
+        _showTimer = true;
+        _isTimeout = false;
+        _remainingSeconds = 180;
+        _isButtonDisabled = true;
       });
+
+      _showSendComplete();
+      _startTimer();
     }
+  }
+
+  void _startTimer() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+        return true;
+      } else {
+        setState(() {
+          _isTimeout = true;
+          _showTimer = true;
+        });
+        return false;
+      }
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return '$minutes : $secs';
+  }
+
+  void _showSendComplete() {
+    OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 140,
+        left: 24,
+        right: 24,
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F7F7),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFBFBFBF), width: 1.3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: const [
+                Icon(Icons.check_rounded, color: Colors.black87, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  '전송 완료!',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
   @override
@@ -117,34 +199,34 @@ class _LookupHomePageState extends State<LookupHomePage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: Image.asset(
-              'assets/icons/bell_icon.png',
-              width: 22,
-              height: 22,
+          Padding(
+            padding: const EdgeInsets.only(right: 20.0, top: 8.0),
+            child: IconButton(
+              icon: Image.asset(
+                'assets/icons/bell_icon.png',
+                width: 27,
+                height: 27,
+              ),
+              onPressed: () {},
             ),
-            onPressed: () {
-              // TODO: 알림 페이지 연결 예정
-            },
           ),
         ],
       ),
 
-      // 하단 네비게이션
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08), // 아주 은은한 그림자
-              offset: const Offset(0, -2), // 위쪽으로 향하는 그림자
-              blurRadius: 8, // 부드럽게 퍼지게
+              color: Colors.black.withOpacity(0.08),
+              offset: const Offset(0, -2),
+              blurRadius: 8,
             ),
           ],
         ),
         child: BottomAppBar(
           color: Colors.transparent,
-          elevation: 0, // 자체 그림자 제거
+          elevation: 0,
           shape: const CircularNotchedRectangle(),
           notchMargin: 10,
           child: SizedBox(
@@ -188,24 +270,22 @@ class _LookupHomePageState extends State<LookupHomePage> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: _openSendPage,
-        backgroundColor: Colors.black,
-        elevation: 6,
+        onPressed: _isButtonDisabled ? null : _openSendPage,
+        backgroundColor: _isButtonDisabled ? Colors.grey : Colors.black,
+        elevation: _isButtonDisabled ? 0 : 6,
         shape: const CircleBorder(),
         child: Image.asset('assets/lookup_icon.png', width: 35, height: 35),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // ✅ 본문 내용
       body: _hasFeed ? _buildFeedView() : _buildEmptyView(),
     );
   }
 
-  // ✅ 피드가 없을 때 (기존 화면)
+  // 피드 없음 화면
   Widget _buildEmptyView() {
     return Stack(
       children: [
-        // 가운데 콘텐츠 (위치, 안내문 등)
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -247,9 +327,8 @@ class _LookupHomePageState extends State<LookupHomePage> {
           ),
         ),
 
-        // 💬 말풍선을 플로팅 버튼 바로 위에 배치
         Positioned(
-          bottom: 50, // ← 말풍선과 플로팅 버튼 사이의 간격
+          bottom: 50,
           left: 0,
           right: 0,
           child: Center(child: _buildBubble()),
@@ -258,43 +337,132 @@ class _LookupHomePageState extends State<LookupHomePage> {
     );
   }
 
-  // ✅ 전송 완료 후 피드 표시 화면
+  // 피드 화면 (타이머 + 말풍선)
   Widget _buildFeedView() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 20, top: 16),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black87,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 4,
-                offset: const Offset(1, 2),
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 20, top: 16),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(20),
               ),
-            ],
-          ),
-          child: Text(
-            '${_emoji ?? ''} $_currentLocation',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+              child: Text(
+                '${_emoji ?? ''} $_currentLocation',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ),
-      ),
+
+        if (_showTimer)
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 타이머 박스
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _isTimeout
+                          ? const Color(0xFFF1F1F1)
+                          : Colors.black,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.camera_alt_outlined,
+                          color: _isTimeout ? Colors.grey : Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _isTimeout
+                              ? 'TIME OUT'
+                              : _formatTime(_remainingSeconds),
+                          style: TextStyle(
+                            color: _isTimeout ? Colors.grey : Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 🔥 말풍선 + 꼬리 추가됨
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Positioned(
+                        top: -10,
+                        child: CustomPaint(
+                          size: const Size(20, 10),
+                          painter: _BubbleUpTailPainter(), // ⬅ 위로 향한 꼬리 적용!
+                        ),
+                      ),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Text(
+                          '아직 게시물이 없어요!\n가장 먼저 풍경을 촬영해보세요.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                            height: 1.25,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  // 💬 회색 말풍선
+  // 💬 플로팅 버튼 위 말풍선
   Widget _buildBubble() {
     return Stack(
       alignment: Alignment.bottomCenter,
-      clipBehavior: Clip.none, // ✅ 꼬리가 영역 밖으로 나가도 보이게
+      clipBehavior: Clip.none,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
@@ -321,7 +489,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
           ),
         ),
         Positioned(
-          bottom: -12, // 👈 꼬리 위치를 좀 더 아래로
+          bottom: -12,
           child: CustomPaint(
             size: const Size(20, 12),
             painter: _BubbleTailPainter(),
@@ -332,7 +500,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
   }
 }
 
-// 🎨 회색 말풍선 꼬리
+// 🎨 플로팅 버튼 위 말풍선 꼬리
 class _BubbleTailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -344,6 +512,27 @@ class _BubbleTailPainter extends CustomPainter {
       ..moveTo(0, 0)
       ..lineTo(size.width / 2, size.height)
       ..lineTo(size.width, 0)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+// 🎨 타이머 아래 말풍선 꼬리
+class _BubbleUpTailPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFF0F0F0)
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(size.width / 2, 0) // 위 중앙 뾰족
+      ..lineTo(0, size.height) // 왼쪽 아래
+      ..lineTo(size.width, size.height) // 오른쪽 아래
       ..close();
 
     canvas.drawPath(path, paint);

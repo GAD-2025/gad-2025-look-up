@@ -27,12 +27,16 @@ class _SendPageState extends State<SendPage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: Colors.black87,
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0, top: 8.0),
+            child: IconButton(
+              icon: Image.asset(
+                'assets/icons/bell_icon.png',
+                width: 27,
+                height: 27,
+              ),
+              onPressed: () {},
             ),
-            onPressed: () {},
           ),
         ],
       ),
@@ -70,9 +74,19 @@ class _SendPageState extends State<SendPage> {
                 style: const TextStyle(fontSize: 40),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
-                  hintText: '😀',
                   hintStyle: TextStyle(color: Colors.grey, fontSize: 32),
                 ),
+
+                // 🔥 추가: 이모티콘 1개만 입력되도록 제한
+                onChanged: (value) {
+                  if (value.length > 1) {
+                    _emojiController.text = value.characters.first;
+                    _emojiController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _emojiController.text.length),
+                    );
+                    setState(() {});
+                  }
+                },
               ),
             ),
           ),
