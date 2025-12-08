@@ -34,6 +34,8 @@ dependencies:
   
   kakao_flutter_sdk_user: ^1.8.0
 
+  image_picker: ^1.0.7
+  camera: ^0.10.5+5
 
   geolocator: ^10.1.0
   geocoding: ^2.2.0

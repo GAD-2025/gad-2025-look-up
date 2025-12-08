@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'pages/camera_page.dart';
+
 
 void main() {
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
@@ -371,44 +373,54 @@ class _LookupHomePageState extends State<LookupHomePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 타이머 박스
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _isTimeout
-                          ? const Color(0xFFF1F1F1)
-                          : Colors.black,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.camera_alt_outlined,
-                          color: _isTimeout ? Colors.grey : Colors.white,
-                          size: 16,
+                  // 🔥 타이머 박스 → CameraPage 이동 추가됨!
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CameraPage(),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _isTimeout
-                              ? 'TIME OUT'
-                              : _formatTime(_remainingSeconds),
-                          style: TextStyle(
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _isTimeout
+                            ? const Color(0xFFF1F1F1)
+                            : Colors.black,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.camera_alt_outlined,
                             color: _isTimeout ? Colors.grey : Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            size: 16,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Text(
+                            _isTimeout
+                                ? 'TIME OUT'
+                                : _formatTime(_remainingSeconds),
+                            style: TextStyle(
+                              color: _isTimeout ? Colors.grey : Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  // 🔥 말풍선 + 꼬리 추가됨
+                  // 🔥 말풍선 + 꼬리
                   Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.topCenter,
@@ -417,7 +429,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
                         top: -10,
                         child: CustomPaint(
                           size: const Size(20, 10),
-                          painter: _BubbleUpTailPainter(), // ⬅ 위로 향한 꼬리 적용!
+                          painter: _BubbleUpTailPainter(),
                         ),
                       ),
 
@@ -451,12 +463,14 @@ class _LookupHomePageState extends State<LookupHomePage> {
                     ],
                   ),
                 ],
-              ),
+             ),
             ),
           ),
       ],
     );
   }
+
+  
 
   // 💬 플로팅 버튼 위 말풍선
   Widget _buildBubble() {

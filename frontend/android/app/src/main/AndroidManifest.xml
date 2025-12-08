@@ -1,75 +1,93 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.lookup_app">  <!-- ✅ 여기: MainActivity.kt 의 package 와 동일하게 수정 -->
+    package="com.example.lookup_app">
 
-    <!-- 인터넷 권한 -->
+    <!-- ========================= -->
+    <!--        Permissions         -->
+    <!-- ========================= -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <!-- 위치 권한 -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
+    <!-- 카메라/저장소 권한 -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <!-- ========================= -->
+    <!--         Application        -->
+    <!-- ========================= -->
     <application
-        android:label="lookup_app"
         android:name="${applicationName}"
+        android:label="lookup_app"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- ✅ 카카오 네이티브 앱 키 (정확한 값!) -->
+        <!-- 카카오 SDK AppKey -->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
-            android:value="3033934ad0bba787529944420a0e059" />
+            android:value="03033934ad0bba787529944420a0e059" />
 
-        <!-- ✅ 카카오 인증 결과를 받는 Activity -->
+        <!-- FileProvider (카메라 파일 저장) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- 카카오 로그인 CustomTabs 결과 받는 Activity -->
         <activity
             android:name="com.kakao.sdk.flutter.AuthCodeCustomTabsActivity"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- ✅ Redirect URI: kakao{네이티브키}://oauth -->
+            <!-- Redirect URI : kakao{네이티브앱키}://oauth -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+
                 <data
-                android:scheme="kakao03033934ad0bba787529944420a0e059"
-                android:host="oauth" />
+                    android:scheme="kakao03033934ad0bba787529944420a0e059"
+                    android:host="oauth"/>
             </intent-filter>
         </activity>
 
-        <!-- ✅ Flutter 메인 Activity -->
+        <!-- Flutter 메인 Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:windowSoftInputMode="adjustResize">
 
-            <meta-data
-            android:name="com.kakao.sdk.AppKey"
-            android:value="03033934ad0bba787529944420a0e059" />  <!-- ✅ 0303… 으로 수정 -->
-
-
-            <!-- ✅ 앱 시작점: MAIN + LAUNCHER -->
+            <!-- 앱 시작 지점 -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <!-- 플러터 엔진 버전 표시 -->
+        <!-- Flutter 엔진 버전 -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
 
     </application>
 
-    <!-- Flutter text query -->
+    <!-- ========================= -->
+    <!--         Queries            -->
+    <!-- ========================= -->
     <queries>
         <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
         </intent>
     </queries>
 
