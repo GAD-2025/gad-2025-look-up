@@ -1,7 +1,9 @@
 import 'dart:io';
-import 'package:lookup_app/pages/preview_page.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+
+import '../pages/preview_page.dart';
+import '../models/post_model.dart';
 
 enum CameraMode { photo, video }
 
@@ -12,13 +14,12 @@ class CameraPage extends StatefulWidget {
 
 class _CameraPageState extends State<CameraPage> {
   // ---------------------------
-  // 1) 상태 변수들
+  // 1) 상태 변수
   // ---------------------------
   CameraController? _controller;
   bool _isInitialized = false;
 
   bool _showGuideMessage = true;
-  int _remainingSeconds = 0;
 
   CameraMode _mode = CameraMode.photo;
   bool _isRecording = false;
@@ -28,15 +29,36 @@ class _CameraPageState extends State<CameraPage> {
   FlashMode _flashMode = FlashMode.off;
 
   // ---------------------------
-  // 2) initState
+  // PreviewPage 열고 PostModel 반환받기
   // ---------------------------
+  Future<void> _openPreview(File file, {required bool isVideo}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PreviewPage(
+          filePath: file.path,
+          isSender: true, // TODO: 실제 로직에 맞게 변경
+          currentUserNickname: "닉네임", // TODO: 실제 회원 닉네임으로 변경
+          isVideo: isVideo,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    // PreviewPage에서 PostModel을 반환하면 CameraPage 종료하며 전달
+    if (result != null && result is PostModel) {
+      Navigator.pop(context, result);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _initCamera();
 
-    // 안내문구 2초 후 자동 숨김
-    Future.delayed(Duration(seconds: 2), () {
+    // 안내문구 2초 후 사라짐
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
           _showGuideMessage = false;
@@ -50,7 +72,6 @@ class _CameraPageState extends State<CameraPage> {
   // ---------------------------
   Future<void> _initCamera() async {
     final cameras = await availableCameras();
-
     final rearCamera = cameras.firstWhere(
       (cam) => cam.lensDirection == CameraLensDirection.back,
     );
@@ -58,14 +79,11 @@ class _CameraPageState extends State<CameraPage> {
     _controller = CameraController(
       rearCamera,
       ResolutionPreset.high,
-      enableAudio: true, // 동영상 녹화 가능하게
+      enableAudio: true,
     );
 
     await _controller!.initialize();
-
-    setState(() {
-      _isInitialized = true;
-    });
+    setState(() => _isInitialized = true);
   }
 
   // ---------------------------
@@ -74,25 +92,19 @@ class _CameraPageState extends State<CameraPage> {
   Future<void> _toggleFlash() async {
     if (_flashMode == FlashMode.off) {
       await _controller?.setFlashMode(FlashMode.torch);
-      setState(() {
-        _flashMode = FlashMode.torch;
-      });
+      setState(() => _flashMode = FlashMode.torch);
     } else {
       await _controller?.setFlashMode(FlashMode.off);
-      setState(() {
-        _flashMode = FlashMode.off;
-      });
+      setState(() => _flashMode = FlashMode.off);
     }
   }
 
   // ---------------------------
-  // 줌 설정
+  // 줌
   // ---------------------------
   Future<void> _setZoom(double value) async {
     await _controller?.setZoomLevel(value);
-    setState(() {
-      _zoomLevel = value;
-    });
+    setState(() => _zoomLevel = value);
   }
 
   // ---------------------------
@@ -101,20 +113,10 @@ class _CameraPageState extends State<CameraPage> {
   Future<void> _takePhoto() async {
     if (!_controller!.value.isInitialized) return;
 
-    final file = await _controller!.takePicture();
-    print("📸 사진 촬영 완료: ${file.path}");
+    final XFile xfile = await _controller!.takePicture();
+    final file = File(xfile.path);
 
-    if (!mounted) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PreviewPage(
-          filePath: file.path,
-          isVideo: false,
-        ),
-      ),
-    );
+    await _openPreview(file, isVideo: false);
   }
 
   // ---------------------------
@@ -129,16 +131,13 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     await _controller!.startVideoRecording();
-    print("🎥 녹화 시작");
 
-    // 5초 타이머
+    // 5초 녹화 타이머
     for (int i = 0; i < 5; i++) {
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 1));
       if (!_isRecording) break;
 
-      setState(() {
-        _recordSeconds++;
-      });
+      setState(() => _recordSeconds++);
     }
 
     if (_isRecording && _recordSeconds >= 5) {
@@ -147,29 +146,16 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   // ---------------------------
-  // 동영상 녹화 종료
+  // 녹화 종료
   // ---------------------------
   Future<void> _stopVideoRecording() async {
     if (!_controller!.value.isRecordingVideo) return;
 
-    final file = await _controller!.stopVideoRecording();
-    print("🎥 녹화 종료: ${file.path}");
+    final XFile videoFile = await _controller!.stopVideoRecording();
+    setState(() => _isRecording = false);
 
-    setState(() {
-      _isRecording = false;
-    });
-
-    if (!mounted) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PreviewPage(
-          filePath: file.path,
-          isVideo: true,
-        ),
-      ),
-    );
+    final File file = File(videoFile.path);
+    await _openPreview(file, isVideo: true);
   }
 
   // ---------------------------
@@ -182,48 +168,20 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   // ---------------------------
-  // UI 위젯: 타이머 박스
-  // ---------------------------
-  Widget _buildTimerBox() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.camera_alt_outlined, size: 18, color: Colors.black),
-          SizedBox(width: 6),
-          Text(
-            "02:59",
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------
-  // UI 위젯: 안내 메시지
+  // 안내 메시지
   // ---------------------------
   Widget _buildGuideMessage() {
     return AnimatedOpacity(
       opacity: _showGuideMessage ? 1.0 : 0.0,
-      duration: Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 500),
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.5),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(
+          child: const Text(
             "풍경만 담아주세요",
             style: TextStyle(
               color: Colors.white,
@@ -237,13 +195,13 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   // ---------------------------
-  // UI 위젯: 줌 버튼
+  // 줌 버튼
   // ---------------------------
   Widget _buildZoomButton(double value) {
     return GestureDetector(
       onTap: () => _setZoom(value),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: _zoomLevel == value ? Colors.white : Colors.black54,
           borderRadius: BorderRadius.circular(20),
@@ -279,12 +237,12 @@ class _CameraPageState extends State<CameraPage> {
                     top: 16,
                     left: 16,
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
 
-                  // 🔥 플래시 버튼
+                  // 플래시 버튼
                   Positioned(
                     top: 16,
                     right: 70,
@@ -297,24 +255,15 @@ class _CameraPageState extends State<CameraPage> {
                         size: 28,
                       ),
                       onPressed: () {
-                        if (_mode == CameraMode.photo) {
-                          _toggleFlash();
-                        }
+                        if (_mode == CameraMode.photo) _toggleFlash();
                       },
                     ),
                   ),
 
-                  // 카메라 타이머 박스
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: _buildTimerBox(),
-                  ),
-
-                  // 안내 문구
+                  // 안내 메시지
                   if (_showGuideMessage) Positioned.fill(child: _buildGuideMessage()),
 
-                  // 하단 촬영/줌 UI
+                  // 하단 UI
                   Positioned(
                     bottom: 40,
                     left: 0,
@@ -322,19 +271,19 @@ class _CameraPageState extends State<CameraPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 🔍 줌 버튼
+                        // 줌
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildZoomButton(0.5),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             _buildZoomButton(1.0),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             _buildZoomButton(2.0),
                           ],
                         ),
 
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
                         // 사진 / 동영상 전환
                         Row(
@@ -348,14 +297,12 @@ class _CameraPageState extends State<CameraPage> {
                                   color: _mode == CameraMode.photo
                                       ? Colors.white
                                       : Colors.grey,
-                                  fontWeight: _mode == CameraMode.photo
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 24),
+                            const SizedBox(width: 24),
                             GestureDetector(
                               onTap: () => setState(() => _mode = CameraMode.video),
                               child: Text(
@@ -364,9 +311,7 @@ class _CameraPageState extends State<CameraPage> {
                                   color: _mode == CameraMode.video
                                       ? Colors.white
                                       : Colors.grey,
-                                  fontWeight: _mode == CameraMode.video
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
@@ -374,9 +319,9 @@ class _CameraPageState extends State<CameraPage> {
                           ],
                         ),
 
-                        SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                        // 🔴 촬영 버튼
+                        // 촬영 버튼
                         GestureDetector(
                           onTap: () async {
                             if (_mode == CameraMode.photo) {
@@ -422,7 +367,7 @@ class _CameraPageState extends State<CameraPage> {
                   ),
                 ],
               )
-            : Center(
+            : const Center(
                 child: CircularProgressIndicator(color: Colors.white),
               ),
       ),

@@ -1,11 +1,16 @@
-import 'start_page.dart';
-import 'send_page.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+
+// 페이지
+import 'start_page.dart';
+import 'send_page.dart';
 import 'pages/camera_page.dart';
 
+// 모델
+import 'models/post_model.dart';
 
 void main() {
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
@@ -40,6 +45,16 @@ class _LookupHomePageState extends State<LookupHomePage> {
   bool _showTimer = false;
   bool _isTimeout = false;
   bool _isButtonDisabled = false;
+
+    // 🔥 피드 게시물 목록
+    List<PostModel> feedPosts = [];
+
+    // 🔥 게시물 추가 메서드
+    void addPost(PostModel post) {
+      setState(() {
+        feedPosts.add(post);
+      });
+    }
 
   @override
   void initState() {
@@ -184,6 +199,58 @@ class _LookupHomePageState extends State<LookupHomePage> {
     });
   }
 
+  // 🔥 타이머 박스 = 카메라 이동 버튼
+  Widget _buildTimerButton() {
+    return GestureDetector(
+      onTap: () async {
+        if (_isTimeout) return; // TIME OUT이면 카메라 못 열게
+
+        // 📸 CameraPage로 이동
+        final newPost = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => CameraPage()),
+        );
+
+        if (!mounted) return;
+
+        // 📸 촬영 후 돌아온 PostModel이 있으면 피드에 추가
+        if (newPost != null && newPost is PostModel) {
+          addPost(newPost);
+          setState(() {
+            _showTimer = false; // 한 번 찍고 오면 타이머 숨기기 (원하는 대로 조절 가능)
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: _isTimeout ? const Color(0xFFF1F1F1) : Colors.black,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.camera_alt_outlined,
+              color: _isTimeout ? Colors.grey : Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _isTimeout ? 'TIME OUT' : _formatTime(_remainingSeconds),
+              style: TextStyle(
+                color: _isTimeout ? Colors.grey : Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -272,12 +339,36 @@ class _LookupHomePageState extends State<LookupHomePage> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: _isButtonDisabled ? null : _openSendPage,
+        onPressed: () async {
+          if (_isButtonDisabled) return;
+
+          // ① SendPage 열기 → 이모지 선택
+          final emoji = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SendPage()),
+          );
+
+          // 선택 안 하면 종료
+          if (emoji == null || emoji is! String || emoji.isEmpty) return;
+
+          // ② 피드 활성화 & 타이머 시작
+          setState(() {
+            _emoji = emoji;
+            _hasFeed = true;
+            _showTimer = true;
+            _isTimeout = false;
+            _remainingSeconds = 180;
+          });
+
+          // ❗ 카메라는 여기서 실행하지 않음
+          // CameraPage는 타이머 버튼을 눌렀을 때 열려야 함!
+        },
         backgroundColor: _isButtonDisabled ? Colors.grey : Colors.black,
         elevation: _isButtonDisabled ? 0 : 6,
         shape: const CircleBorder(),
         child: Image.asset('assets/lookup_icon.png', width: 35, height: 35),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       body: _hasFeed ? _buildFeedView() : _buildEmptyView(),
@@ -341,86 +432,31 @@ class _LookupHomePageState extends State<LookupHomePage> {
 
   // 피드 화면 (타이머 + 말풍선)
   Widget _buildFeedView() {
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 20, top: 16),
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${_emoji ?? ''} $_currentLocation',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ),
+  return Stack(
+    children: [
+      // 📌 1) 상단: 위치 + 이모지
+      Padding(
+        padding: const EdgeInsets.only(left: 20, top: 16),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: _buildTimerButton(),
         ),
+      ),
 
-        if (_showTimer)
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 60),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 🔥 타이머 박스 → CameraPage 이동 추가됨!
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CameraPage(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _isTimeout
-                            ? const Color(0xFFF1F1F1)
-                            : Colors.black,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.camera_alt_outlined,
-                            color: _isTimeout ? Colors.grey : Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _isTimeout
-                                ? 'TIME OUT'
-                                : _formatTime(_remainingSeconds),
-                            style: TextStyle(
-                              color: _isTimeout ? Colors.grey : Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+      // 📌 2) 타이머 박스 + 말풍선
+      if (_showTimer)
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 60),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
 
-                  const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-                  // 🔥 말풍선 + 꼬리
+                // 말풍선 (게시물이 없을 때만 노출)
+                if (feedPosts.isEmpty)
                   Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.topCenter,
@@ -462,15 +498,97 @@ class _LookupHomePageState extends State<LookupHomePage> {
                       ),
                     ],
                   ),
-                ],
-             ),
+              ],
             ),
           ),
-      ],
-    );
-  }
+        ),
 
-  
+      // 📌 3) 전체 피드 그리드 (게시물이 있을 때만 표시)
+      if (feedPosts.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 160), // 타이머 아래로 공간 확보
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            itemCount: feedPosts.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.75,
+            ),
+            itemBuilder: (context, index) {
+              final post = feedPosts[index];
+
+              return GestureDetector(
+                onTap: () {
+                  // 🔥 게시물 상세 페이지 이동 예정
+                  print("게시물 클릭: ${post.nickname}");
+                },
+                child: Stack(
+                  children: [
+                    // 이미지
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        File(post.imagePath),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    ),
+
+                    // 하단 그라데이션 + 닉네임 + 좋아요
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.black54, Colors.transparent],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              post.nickname,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                const Icon(Icons.favorite,
+                                    color: Colors.white, size: 14),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "0",  // 좋아요 기능은 나중에 구현
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+    ],
+  );
+}
 
   // 💬 플로팅 버튼 위 말풍선
   Widget _buildBubble() {
