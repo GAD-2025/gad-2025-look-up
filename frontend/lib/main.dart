@@ -204,6 +204,7 @@ class _LookupHomePageState extends State<LookupHomePage> {
     return GestureDetector(
       onTap: () async {
         if (_isTimeout) return; // TIME OUT이면 카메라 못 열게
+        if (_isButtonDisabled) return; // 버튼 비활성화 상태면 비활성화
 
         // 📸 CameraPage로 이동
         final newPost = await Navigator.push(
@@ -216,9 +217,6 @@ class _LookupHomePageState extends State<LookupHomePage> {
         // 📸 촬영 후 돌아온 PostModel이 있으면 피드에 추가
         if (newPost != null && newPost is PostModel) {
           addPost(newPost);
-          setState(() {
-            _showTimer = false; // 한 번 찍고 오면 타이머 숨기기 (원하는 대로 조절 가능)
-          });
         }
       },
       child: Container(
@@ -357,8 +355,10 @@ class _LookupHomePageState extends State<LookupHomePage> {
             _hasFeed = true;
             _showTimer = true;
             _isTimeout = false;
-            _remainingSeconds = 180;
+            _remainingSeconds = 180; // 카운트다운 시작
           });
+
+          _startTimer();   // 🔥 타이머만 시작 — 절대 CameraPage로 이동하지 않음
 
           // ❗ 카메라는 여기서 실행하지 않음
           // CameraPage는 타이머 버튼을 눌렀을 때 열려야 함!
@@ -439,9 +439,24 @@ class _LookupHomePageState extends State<LookupHomePage> {
         padding: const EdgeInsets.only(left: 20, top: 16),
         child: Align(
           alignment: Alignment.topLeft,
-          child: _buildTimerButton(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${_emoji ?? ''} $_currentLocation',
+              style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              ),
+            ),
+          ),
         ),
       ),
+
 
       // 📌 2) 타이머 박스 + 말풍선
       if (_showTimer)
@@ -451,8 +466,10 @@ class _LookupHomePageState extends State<LookupHomePage> {
             padding: const EdgeInsets.only(top: 60),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-
+              children: [               
+                // 🔥 타이머 박스 = 카메라 이동 버튼
+                _buildTimerButton(),
+                
                 const SizedBox(height: 20),
 
                 // 말풍선 (게시물이 없을 때만 노출)
