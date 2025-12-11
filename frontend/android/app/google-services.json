@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "21076307328",
+    "project_id": "gad-2025-team-4",
+    "storage_bucket": "gad-2025-team-4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:21076307328:android:7a00d10c7840b76334e565",
+        "android_client_info": {
+          "package_name": "com.example.lookup_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBh-68_ZUHEwfCTL0a0w6D6ZlUk0jlICnk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

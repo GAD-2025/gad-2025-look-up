@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 // Pages
 import 'start_page.dart';
@@ -13,7 +14,9 @@ import 'pages/camera_page.dart';
 // Models
 import 'models/post_model.dart';
 
-void main() {
+void main() async { // main 함수를 async로 변경
+  WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진과 위젯 바인딩 초기화
+  await Firebase.initializeApp(); // Firebase 초기화
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
   runApp(const LookupApp());
 }
