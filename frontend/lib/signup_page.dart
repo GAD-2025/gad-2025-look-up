@@ -15,15 +15,15 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   // ===== 상태 변수들 =====
-  bool _isValidId = false;          // 아이디 정규식 통과 여부
-  bool _isIdChecked = false;        // 아이디 중복확인 완료 여부
-  bool _isIdAvailable = false;      // 사용 가능한 아이디인지 여부
+  bool _isValidId = false; // 아이디 정규식 통과 여부
+  bool _isIdChecked = false; // 아이디 중복확인 완료 여부
+  bool _isIdAvailable = false; // 사용 가능한 아이디인지 여부
   bool _showIdError = false;
 
   bool _isValidNickname = false;
   bool _showNicknameError = false;
 
-   String _lastCheckedId = '';
+  String _lastCheckedId = '';
 
   // ✅ 중복확인 버튼 활성 여부
   bool get _canPressCheckButton => _isValidId && !_isIdChecked;
@@ -87,22 +87,21 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   // ===== 입력 검증 =====
- void _validateId() {
-  final text = _idController.text.trim();
-  final isValid = _idRegExp.hasMatch(text);
+  void _validateId() {
+    final text = _idController.text.trim();
+    final isValid = _idRegExp.hasMatch(text);
 
-  setState(() {
-    _isValidId = isValid;
-    _showIdError = text.isNotEmpty && !isValid;
+    setState(() {
+      _isValidId = isValid;
+      _showIdError = text.isNotEmpty && !isValid;
 
-    // ✅ 아이디를 “실제로” 바꿨을 때만 중복확인 결과를 무효화
-    if (text != _lastCheckedId) {
-      _isIdChecked = false;
-      _isIdAvailable = false;
-    }
-  });
-}
-
+      // ✅ 아이디를 “실제로” 바꿨을 때만 중복확인 결과를 무효화
+      if (text != _lastCheckedId) {
+        _isIdChecked = false;
+        _isIdAvailable = false;
+      }
+    });
+  }
 
   void _validateNickname() {
     final text = _nicknameController.text.trim();
@@ -172,9 +171,7 @@ class _SignupPageState extends State<SignupPage> {
   // ===== UI =====
   @override
   Widget build(BuildContext context) {
-    final bool canSubmit =
-    _isValidId && _isValidNickname && _isIdAvailable;
-
+    final bool canSubmit = _isValidId && _isValidNickname && _isIdAvailable;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -265,53 +262,60 @@ class _SignupPageState extends State<SignupPage> {
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _canPressCheckButton
-    ? () async {
-        final id = _idController.text.trim();
-        if (id.isEmpty) return;
+                          ? () async {
+                              final id = _idController.text.trim();
+                              if (id.isEmpty) return;
 
-        final bool? isDuplicated = await _checkIdDuplicated(id);
+                              final bool? isDuplicated =
+                                  await _checkIdDuplicated(id);
 
-        if (isDuplicated == null) {
-          // 서버/네트워크 에러
-          setState(() {
-            _isIdChecked = false;
-            _isIdAvailable = false;
-            _lastCheckedId = '';      // ❗ 실패했으니 체크된 아이디 초기화
-          });
-          return;
-        }
+                              if (isDuplicated == null) {
+                                // 서버/네트워크 에러
+                                setState(() {
+                                  _isIdChecked = false;
+                                  _isIdAvailable = false;
+                                  _lastCheckedId = ''; // ❗ 실패했으니 체크된 아이디 초기화
+                                });
+                                return;
+                              }
 
-        if (isDuplicated) {
-          // ❌ 중복 아이디
-          setState(() {
-            _isIdChecked = true;       // "검사는 했다"
-            _isIdAvailable = false;    // 사용 불가
-            _lastCheckedId = id;       // 이 아이디로 검사했다는 흔적 남김
-          });
+                              if (isDuplicated) {
+                                // ❌ 중복 아이디
+                                setState(() {
+                                  _isIdChecked = true; // "검사는 했다"
+                                  _isIdAvailable = false; // 사용 불가
+                                  _lastCheckedId = id; // 이 아이디로 검사했다는 흔적 남김
+                                });
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showDuplicateDialog(context);
-          });
-        } else {
-          // ✅ 사용 가능한 아이디
-          setState(() {
-            _isIdChecked = true;       // "검사는 했다"
-            _isIdAvailable = true;     // 사용 가능
-            _lastCheckedId = id;       // 이 아이디가 OK라고 확인됨
-          });
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  _showDuplicateDialog(context);
+                                });
+                              } else {
+                                // ✅ 사용 가능한 아이디
+                                setState(() {
+                                  _isIdChecked = true; // "검사는 했다"
+                                  _isIdAvailable = true; // 사용 가능
+                                  _lastCheckedId = id; // 이 아이디가 OK라고 확인됨
+                                });
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showAvailableDialog(context);
-          });
-        }
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  _showAvailableDialog(context);
+                                });
+                              }
 
-        print('✅ 상태: '
-            '_isValidId=$_isValidId, '
-            '_isIdChecked=$_isIdChecked, '
-            '_isIdAvailable=$_isIdAvailable, '
-            '_canPressCheckButton=$_canPressCheckButton');
-      }
-    : null,
+                              print(
+                                '✅ 상태: '
+                                '_isValidId=$_isValidId, '
+                                '_isIdChecked=$_isIdChecked, '
+                                '_isIdAvailable=$_isIdAvailable, '
+                                '_canPressCheckButton=$_canPressCheckButton',
+                              );
+                            }
+                          : null,
 
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _canPressCheckButton
@@ -389,8 +393,7 @@ class _SignupPageState extends State<SignupPage> {
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color:
-                        _showNicknameError ? Colors.red : Colors.transparent,
+                    color: _showNicknameError ? Colors.red : Colors.transparent,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -415,9 +418,6 @@ class _SignupPageState extends State<SignupPage> {
 
             const SizedBox(height: 50),
 
-  
-
-
             // ===== 가입 완료 버튼 =====
             SizedBox(
               width: double.infinity,
@@ -429,15 +429,16 @@ class _SignupPageState extends State<SignupPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const LookupHomePage(), // 메인 페이지로 이동
+                                const LookupMain(), // 메인 페이지로 이동
                           ),
                           (route) => false,
                         );
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      canSubmit ? Colors.black : const Color(0xFFF3F3F3),
+                  backgroundColor: canSubmit
+                      ? Colors.black
+                      : const Color(0xFFF3F3F3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
