@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
+    <!-- FCM Push Notification Permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <!-- 카메라/저장소 권한 -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -28,6 +31,11 @@
         <meta-data
             android:name="com.kakao.sdk.AppKey"
             android:value="03033934ad0bba787529944420a0e059" />
+        
+        <!-- FCM Default Notification Channel -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
 
         <!-- FileProvider (카메라 파일 저장) -->
         <provider
@@ -66,11 +74,23 @@
             android:hardwareAccelerated="true"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:windowSoftInputMode="adjustResize">
+            
+            <!-- This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
+                />
 
             <!-- 앱 시작 지점 -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- FCM: For handling notification clicks when app is in background/terminated -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
 

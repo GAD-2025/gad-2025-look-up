@@ -4,6 +4,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Pages
 import 'start_page.dart';
@@ -14,9 +15,71 @@ import 'pages/camera_page.dart';
 // Models
 import 'models/post_model.dart';
 
+
+// This function must be a top-level function (not a class method)
+// to be handled correctly in the background.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  await Firebase.initializeApp();
+
+  print("Handling a background message: ${message.messageId}");
+  print('Message data: ${message.data}');
+  print('Message notification: ${message.notification?.title}');
+  print('Message notification: ${message.notification?.body}');
+}
+
+Future<void> setupFirebaseMessaging() async {
+  // Initialize Firebase Messaging
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  // 1. Request Notification Permissions
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  print('User granted permission: ${settings.authorizationStatus}');
+
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    print('User granted permission');
+
+    // 2. Get the FCM Token
+    String? fcmToken = await messaging.getToken();
+    print("FCM Token: $fcmToken");
+    // You would typically send this token to your backend server to store it.
+
+    // 3. Set up listeners for handling messages
+    
+    // For handling messages when the app is in the foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        print('Message also contained a notification: ${message.notification}');
+        // Here you could show a local notification to the user, for example.
+      }
+    });
+
+    // For handling messages when the app is in the background or terminated
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  } else {
+    print('User declined or has not accepted permission');
+  }
+}
+
 void main() async { // main 함수를 async로 변경
   WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진과 위젯 바인딩 초기화
   await Firebase.initializeApp(); // Firebase 초기화
+  await setupFirebaseMessaging(); // FCM 설정
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
   runApp(const LookupApp());
 }
