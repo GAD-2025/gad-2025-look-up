@@ -1,16 +1,25 @@
 // 필요 모듈
+require('dotenv').config();
+
 const express = require('express');
 const mysql = require('mysql2/promise');
+const cors = require('cors');
 const app = express();
 
+const corsOptions = {
+  origin: 'http://localhost:58747',
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // MySQL 연결
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',        // 본인 MySQL ID
-  password: '4201', // 본인 MySQL PW
-  database: 'lookup_db'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,        
+  password: process.env.DB_PASSWORD, 
+  database: process.env.DB_NAME
 });
 
 // ✅ 아이디 중복 체크 API
