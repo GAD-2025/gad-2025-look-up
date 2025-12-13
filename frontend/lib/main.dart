@@ -176,25 +176,27 @@ class _LookupMainState extends State<LookupMain> {
   }
 
   Widget _buildTimerButton() {
+    final bool isDisabled = _isTimeout || feedPosts.isNotEmpty; // ⭐ 핵심
+
     return GestureDetector(
-      onTap: () async {
-        if (_isTimeout) return;
+      onTap: isDisabled
+          ? null // 🔒 클릭 자체를 막음
+          : () async {
+              final newPost = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CameraPage()),
+              );
 
-        final newPost = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CameraPage()),
-        );
+              if (!mounted) return;
 
-        if (!mounted) return;
-
-        if (newPost != null && newPost is PostModel) {
-          addPost(newPost);
-        }
-      },
+              if (newPost != null && newPost is PostModel) {
+                addPost(newPost);
+              }
+            },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         decoration: BoxDecoration(
-          color: _isTimeout ? const Color(0xFFF1F1F1) : Colors.black,
+          color: isDisabled ? const Color(0xFFF1F1F1) : Colors.black,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -202,16 +204,16 @@ class _LookupMainState extends State<LookupMain> {
           children: [
             Icon(
               Icons.camera_alt_outlined,
-              color: _isTimeout ? Colors.grey : Colors.white,
-              size: 16,
+              color: isDisabled ? Colors.grey : Colors.white,
+              size: 18,
             ),
             const SizedBox(width: 6),
             Text(
               _isTimeout ? 'TIME OUT' : _formatTime(_remainingSeconds),
               style: TextStyle(
-                color: _isTimeout ? Colors.grey : Colors.white,
+                color: isDisabled ? Colors.grey : Colors.white,
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 16,
               ),
             ),
           ],
@@ -380,123 +382,125 @@ class _LookupMainState extends State<LookupMain> {
 
   Widget _buildFeedView() {
     return Stack(
-    children: [
-      Padding(
-        padding: const EdgeInsets.only(left: 20, top: 16),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 20, top: 16),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
                 color: Colors.black87,
                 borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${_emoji ?? ''} $_currentLocation',
-              style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+              ),
+              child: Text(
+                '${_emoji ?? ''} $_currentLocation',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
         ),
-      ),
-      if (_showTimer)
-        Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 60),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTimerButton(),
-                const SizedBox(height: 20),
-                if (feedPosts.isEmpty)
-                  _buildTimerBubble(),
-              ],
+        if (_showTimer)
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTimerButton(),
+                  const SizedBox(height: 20),
+                  if (feedPosts.isEmpty) _buildTimerBubble(),
+                ],
+              ),
             ),
           ),
-        ),
-      if (feedPosts.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.only(top: 160),
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: feedPosts.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.75,
-            ),
-            itemBuilder: (context, index) {
-              final post = feedPosts[index];
-              return GestureDetector(
-                onTap: () {
-                  print("게시물 클릭: ${post.nickname}");
-                },
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File(post.imagePath),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
+        if (feedPosts.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 160),
+            child: GridView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              itemCount: feedPosts.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.75,
+              ),
+              itemBuilder: (context, index) {
+                final post = feedPosts[index];
+                return GestureDetector(
+                  onTap: () {
+                    print("게시물 클릭: ${post.nickname}");
+                  },
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(post.imagePath),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.black54, Colors.transparent],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.black54, Colors.transparent],
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                post.nickname,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.favorite,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "0",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              post.nickname,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                const Icon(Icons.favorite, 
-                                    color: Colors.white, size: 14),
-                                const SizedBox(width: 4),
-                                Text(
-                                  "0",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
   }
 
   Widget _buildBubble() {
@@ -552,10 +556,7 @@ class _LookupMainState extends State<LookupMain> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFFF0F0F0),
             borderRadius: BorderRadius.circular(24),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../pages/preview_page.dart';
 import '../models/post_model.dart';
+import 'package:app_settings/app_settings.dart';
 
 enum CameraMode { photo, video }
 
@@ -71,19 +72,59 @@ class _CameraPageState extends State<CameraPage> {
   // 카메라 초기화
   // ---------------------------
   Future<void> _initCamera() async {
-    final cameras = await availableCameras();
-    final rearCamera = cameras.firstWhere(
-      (cam) => cam.lensDirection == CameraLensDirection.back,
-    );
+    try {
+      final cameras = await availableCameras();
+      final rearCamera = cameras.firstWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.back,
+      );
 
-    _controller = CameraController(
-      rearCamera,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
+      _controller = CameraController(
+        rearCamera,
+        ResolutionPreset.high,
+        enableAudio: true,
+      );
 
-    await _controller!.initialize();
-    setState(() => _isInitialized = true);
+      await _controller!.initialize();
+
+      if (!mounted) return;
+      setState(() => _isInitialized = true);
+    } on CameraException catch (e) {
+      if (e.code == 'CameraAccessDenied' ||
+          e.code == 'CameraAccessDeniedWithoutPrompt') {
+        _showCameraDeniedDialog();
+      } else {
+        debugPrint("카메라 에러: ${e.code}");
+      }
+    }
+  }
+
+  void _showCameraDeniedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("카메라 권한 필요"),
+        content: const Text(
+          "카메라 접근이 허용되지 않아\n촬영 기능을 사용할 수 없습니다.\n\n"
+          "설정에서 카메라 권한을 허용해주세요.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // 다이얼로그 닫기
+              Navigator.of(context).pop(); // CameraPage 닫기
+            },
+            child: const Text("취소"),
+          ),
+          TextButton(
+            onPressed: () {
+              AppSettings.openAppSettings(); // ⭐ 핵심
+            },
+            child: const Text("설정으로 이동"),
+          ),
+        ],
+      ),
+    );
   }
 
   // ---------------------------
@@ -261,7 +302,8 @@ class _CameraPageState extends State<CameraPage> {
                   ),
 
                   // 안내 메시지
-                  if (_showGuideMessage) Positioned.fill(child: _buildGuideMessage()),
+                  if (_showGuideMessage)
+                    Positioned.fill(child: _buildGuideMessage()),
 
                   // 하단 UI
                   Positioned(
@@ -290,7 +332,8 @@ class _CameraPageState extends State<CameraPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             GestureDetector(
-                              onTap: () => setState(() => _mode = CameraMode.photo),
+                              onTap: () =>
+                                  setState(() => _mode = CameraMode.photo),
                               child: Text(
                                 "사진",
                                 style: TextStyle(
@@ -304,7 +347,8 @@ class _CameraPageState extends State<CameraPage> {
                             ),
                             const SizedBox(width: 24),
                             GestureDetector(
-                              onTap: () => setState(() => _mode = CameraMode.video),
+                              onTap: () =>
+                                  setState(() => _mode = CameraMode.video),
                               child: Text(
                                 "동영상",
                                 style: TextStyle(
@@ -355,8 +399,8 @@ class _CameraPageState extends State<CameraPage> {
                                   color: _mode == CameraMode.photo
                                       ? Colors.white
                                       : (_isRecording
-                                          ? Colors.red
-                                          : Colors.red.shade400),
+                                            ? Colors.red
+                                            : Colors.red.shade400),
                                 ),
                               ),
                             ),
