@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -7,9 +10,9 @@ plugins {
 
 // Load key properties if it exists
 val keyPropertiesFile = rootProject.file("key.properties")
-val keyProperties = java.util.Properties()
+val keyProperties = Properties()
 if (keyPropertiesFile.exists()) {
-    keyProperties.load(java.io.FileInputStream(keyPropertiesFile))
+    keyProperties.load(FileInputStream(keyPropertiesFile))
 }
 
 android {
