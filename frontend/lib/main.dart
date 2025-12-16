@@ -37,11 +37,13 @@ class LookupMain extends StatefulWidget {
   State<LookupMain> createState() => _LookupMainState();
 }
 
-class _LookupMainState extends State<LookupMain> {
-  int _selectedIndex = 0; // From HEAD
+class _LookupMainState extends State<LookupMain> with WidgetsBindingObserver {
+  int _selectedIndex = 0;
 
   // State from feature/camera
   String _currentLocation = "위치 불러오는 중...";
+  bool _isLocationEnabled = true;
+
   String? _emoji;
   bool _hasFeed = false;
   int _remainingSeconds = 0;
@@ -59,7 +61,21 @@ class _LookupMainState extends State<LookupMain> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLocation();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadLocation();
+    }
   }
 
   Future<void> _loadLocation() async {
@@ -68,7 +84,12 @@ class _LookupMainState extends State<LookupMain> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      setState(() => _currentLocation = "위치 서비스 꺼짐");
+      setState(() {
+        _currentLocation = "위치 서비스 꺼짐";
+        _isLocationEnabled = false;
+      });
+
+      _showLocationRequiredDialog();
       return;
     }
 
@@ -101,7 +122,36 @@ class _LookupMainState extends State<LookupMain> {
 
     setState(() {
       _currentLocation = location.isNotEmpty ? location : "위치 정보 없음";
+      _isLocationEnabled = true;
     });
+  }
+
+  void _showLocationRequiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("위치 권한이 필요해요"),
+        content: const Text(
+          "룩업은 주변 사용자에게 풍경을 공유하는 서비스예요.\n\n"
+          "위치 서비스가 켜져 있어야\n알림을 보낼 수 있어요.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("확인"),
+          ),
+          TextButton(
+            onPressed: () {
+              Geolocator.openLocationSettings();
+            },
+            child: const Text("설정으로 이동"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startTimer() {
@@ -260,7 +310,10 @@ class _LookupMainState extends State<LookupMain> {
       body: IndexedStack(index: _selectedIndex, children: pages),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          if (_isButtonDisabled) return;
+          if (_isButtonDisabled || !_isLocationEnabled) {
+            _showLocationRequiredDialog();
+            return;
+          }
 
           final emoji = await Navigator.push(
             context,
@@ -281,7 +334,10 @@ class _LookupMainState extends State<LookupMain> {
           _showToast();
           _startTimer();
         },
-        backgroundColor: _isButtonDisabled ? Colors.grey : Colors.black,
+        backgroundColor: (!_isLocationEnabled || _isButtonDisabled)
+            ? Colors.grey
+            : Colors.black,
+
         elevation: _isButtonDisabled ? 0 : 6,
         shape: const CircleBorder(),
         child: Image.asset('assets/lookup_icon.png', width: 35, height: 35),
