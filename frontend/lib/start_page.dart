@@ -148,33 +148,7 @@ class _StartPageState extends State<StartPage> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: const Color(0xFFF3F3F3), // Disabled color
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                      ),
-                      onPressed: null, // 네이버 로그인은 현재 비활성화
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Image.asset('assets/icons/naver_icon.png', width: 15, height: 15),
-                          ),
-                          const Text(
-                            '네이버로 시작하기',
-                            style: TextStyle(color: Colors.black45, fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+
                 ],
               ),
             ),
