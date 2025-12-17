@@ -315,11 +315,13 @@ class _LookupMainState extends State<LookupMain> {
             padding: const EdgeInsets.only(right: 20.0, top: 8.0),
             child: IconButton(
               icon: Image.asset(
-                'assets/icons/bell_icon.png',
+                _selectedIndex == 0 ? 'assets/icons/bell_icon.png' : 'assets/icons/setting_icon.png',
                 width: 27,
                 height: 27,
               ),
-              onPressed: () {},
+              onPressed: () {
+                // TODO: Add functionality for the setting page or notification page based on the icon.
+              },
             ),
           ),
         ],
@@ -372,11 +374,10 @@ class _LookupMainState extends State<LookupMain> {
         shape: const CircularNotchedRectangle(),
         height: 65,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navItem("피드", 0, "assets/icons/home_icon.png"),
+            Expanded(child: _navItem("피드", 0, "assets/icons/home_icon.png")),
             const SizedBox(width: 50),
-            _navItem("마이로그", 1, "assets/icons/person_icon.png"),
+            Expanded(child: _navItem("마이로그", 1, "assets/icons/person_icon.png")),
           ],
         ),
       ),
@@ -561,7 +562,7 @@ class _LookupMainState extends State<LookupMain> {
                             children: [
                               Flexible(
                                 child: Text(
-                                  post.userId,
+                                  post.nickname, // Display nickname instead of userId
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
