@@ -33,4 +33,35 @@ app.post('/check-id-duplication', async (req, res) => {
   }
 });
 
+// New route for creating a post
+app.post('/api/posts', async (req, res) => {
+  const { imagePath, caption, isVideo, userId } = req.body;
+
+  if (!imagePath || !userId) {
+    return res.status(400).json({ message: 'imagePath and userId are required.' });
+  }
+
+  try {
+    const [result] = await db.execute(
+      'INSERT INTO posts (image_path, caption, is_video, user_id) VALUES (?, ?, ?, ?)',
+      [imagePath, caption, isVideo || false, userId]
+    );
+    res.status(201).json({ message: 'Post created successfully', postId: result.insertId });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    res.status(500).json({ message: 'Server error while creating post.' });
+  }
+});
+
+// New route to get all posts
+app.get('/api/posts', async (req, res) => {
+  try {
+    const [rows] = await db.execute('SELECT * FROM posts ORDER BY created_at DESC');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ message: 'Server error while fetching posts.' });
+  }
+});
+
 module.exports = app;

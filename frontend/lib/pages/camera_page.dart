@@ -38,8 +38,6 @@ class _CameraPageState extends State<CameraPage> {
       MaterialPageRoute(
         builder: (_) => PreviewPage(
           filePath: file.path,
-          isSender: true, // TODO: 실제 로직에 맞게 변경
-          currentUserNickname: "닉네임", // TODO: 실제 회원 닉네임으로 변경
           isVideo: isVideo,
         ),
       ),
