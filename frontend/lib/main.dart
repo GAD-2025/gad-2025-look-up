@@ -341,6 +341,7 @@ class _LookupMainState extends State<LookupMain> {
 
           if (newFeedId != null) {
             setState(() {
+              feedPosts.clear(); // Clear old posts before setting new feed
               _feedId = newFeedId; // Store the new feed ID
               _emoji = emoji;
               _hasFeed = true;
