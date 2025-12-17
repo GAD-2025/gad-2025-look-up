@@ -53,4 +53,15 @@ app.post('/api/posts', async (req, res) => {
   }
 });
 
+// New route to get all posts
+app.get('/api/posts', async (req, res) => {
+  try {
+    const [rows] = await db.execute('SELECT * FROM posts ORDER BY created_at DESC');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    res.status(500).json({ message: 'Server error while fetching posts.' });
+  }
+});
+
 module.exports = app;

@@ -25,4 +25,15 @@ class PostModel {
       'createdAt': createdAt.toIso8601String(),
     };
   }
+
+  // Factory constructor to create a PostModel from a JSON object
+  factory PostModel.fromJson(Map<String, dynamic> json) {
+    return PostModel(
+      imagePath: json['image_path'],
+      caption: json['caption'],
+      isVideo: json['is_video'] == 1,
+      userId: json['user_id'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
 }

@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -38,9 +40,8 @@ class LookupMain extends StatefulWidget {
 }
 
 class _LookupMainState extends State<LookupMain> {
-  int _selectedIndex = 0; // From HEAD
+  int _selectedIndex = 0;
 
-  // State from feature/camera
   String _currentLocation = "위치 불러오는 중...";
   String? _emoji;
   bool _hasFeed = false;
@@ -50,16 +51,31 @@ class _LookupMainState extends State<LookupMain> {
   bool _isButtonDisabled = false;
   List<PostModel> feedPosts = [];
 
-  void addPost(PostModel post) {
-    setState(() {
-      feedPosts.add(post);
-    });
-  }
-
   @override
   void initState() {
     super.initState();
     _loadLocation();
+    _fetchPosts(); // Load posts when the app starts
+  }
+
+  Future<void> _fetchPosts() async {
+    try {
+      final url = Uri.parse('http://10.0.2.2:3000/api/posts');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> postJson = json.decode(response.body);
+        setState(() {
+          feedPosts = postJson.map((json) => PostModel.fromJson(json)).toList();
+        });
+      } else {
+        // Handle server error
+        print('Failed to load posts');
+      }
+    } catch (e) {
+      // Handle connection error
+      print('Error fetching posts: $e');
+    }
   }
 
   Future<void> _loadLocation() async {
@@ -180,16 +196,13 @@ class _LookupMainState extends State<LookupMain> {
       onTap: () async {
         if (_isTimeout) return;
 
-        final newPost = await Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => CameraPage()),
         );
 
-        if (!mounted) return;
-
-        if (newPost != null && newPost is PostModel) {
-          addPost(newPost);
-        }
+        // When returning from the camera flow, refresh the feed
+        _fetchPosts();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -434,7 +447,7 @@ class _LookupMainState extends State<LookupMain> {
               final post = feedPosts[index];
               return GestureDetector(
                 onTap: () {
-                  print("게시물 클릭: ${post.nickname}");
+                  print("게시물 클릭: ${post.userId}");
                 },
                 child: Stack(
                   children: [
@@ -464,7 +477,7 @@ class _LookupMainState extends State<LookupMain> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              post.nickname,
+                              post.userId,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,

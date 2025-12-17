@@ -22,8 +22,8 @@ class _PreviewPageState extends State<PreviewPage> {
   final TextEditingController _captionController = TextEditingController();
 
   Future<void> _sendPost() async {
-    // TODO: Replace 'test_user_id' with the actual logged-in user's ID
-    const userId = 'test_user_id';
+    // TODO: Replace 'gad123' with the actual logged-in user's ID
+    const userId = 'gad123';
 
     final newPost = PostModel(
       imagePath: widget.filePath,
