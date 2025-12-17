@@ -3,7 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../pages/preview_page.dart';
-import 'package:app_settings/app_settings.dart';
+
 
 enum CameraMode { photo, video }
 
@@ -82,40 +82,14 @@ class _CameraPageState extends State<CameraPage> {
     } on CameraException catch (e) {
       if (e.code == 'CameraAccessDenied' ||
           e.code == 'CameraAccessDeniedWithoutPrompt') {
-        _showCameraDeniedDialog();
+        // Pop the page and return a value indicating permission denial
+        if (mounted) {
+          Navigator.pop(context, 'permission_denied');
+        }
       } else {
         debugPrint("카메라 에러: ${e.code}");
       }
     }
-  }
-
-  void _showCameraDeniedDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text("카메라 권한 필요"),
-        content: const Text(
-          "카메라 접근이 허용되지 않아\n촬영 기능을 사용할 수 없습니다.\n\n"
-          "설정에서 카메라 권한을 허용해주세요.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // 다이얼로그 닫기
-              Navigator.of(context).pop(); // CameraPage 닫기
-            },
-            child: const Text("취소"),
-          ),
-          TextButton(
-            onPressed: () {
-              AppSettings.openAppSettings(); // ⭐ 핵심
-            },
-            child: const Text("설정으로 이동"),
-          ),
-        ],
-      ),
-    );
   }
 
   // ---------------------------

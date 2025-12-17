@@ -223,15 +223,33 @@ class _LookupMainState extends State<LookupMain> {
           ? null
           : () async {
               // Navigate to the camera and wait for it to complete.
-              // The PreviewPage will pop itself and the CameraPage on success.
-              await Navigator.push(
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => CameraPage()),
               );
 
-              // When returning from the camera flow, refresh the feed.
-              // This will show the newly uploaded post.
-              _fetchPosts();
+              // If permission was denied, show an alert.
+              if (result == 'permission_denied') {
+                if (!mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("권한 필요"),
+                    content:
+                        const Text("카메라 권한을 동의하지 않으면 게시물을 작성할 수 없습니다."),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text("확인"),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                // When returning from the camera flow successfully, refresh the feed.
+                // This will show the newly uploaded post.
+                _fetchPosts();
+              }
             },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
