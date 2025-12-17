@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import '../user_session.dart'; // 사용자 세션
 
 class PreviewPage extends StatefulWidget {
   final String filePath;
@@ -28,46 +30,47 @@ class _PreviewPageState extends State<PreviewPage> {
       _isLoading = true;
     });
 
-    // TODO: Replace 'gad123' with the actual logged-in user's ID
-    const userId = 'gad123';
+    // --- 로그인된 사용자 정보 가져오기 ---
+    final AppUser? currentUser = await UserSession.getUser();
 
-    // NOTE: 10.0.2.2 is for Android emulator. Use localhost or your IP for other platforms.
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('오류: 로그인 정보가 없습니다. 다시 로그인해주세요.')),
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+    // ---------------------------------
+
     final url = Uri.parse('http://10.0.2.2:3000/api/posts');
     
     try {
-      // Create a multipart request
       final request = http.MultipartRequest('POST', url);
 
-      // Add the file
       request.files.add(
         await http.MultipartFile.fromPath(
-          'image', // This key must match the one in backend: upload.single('image')
+          'image',
           widget.filePath,
         ),
       );
 
-      // Add other fields
-      request.fields['userId'] = userId;
+      // --- 실제 사용자 ID 사용 ---
+      request.fields['userId'] = currentUser.id;
       request.fields['caption'] = _captionController.text;
       request.fields['isVideo'] = widget.isVideo.toString();
 
-      // Send the request
       final streamedResponse = await request.send();
-      
-      // Get the response
       final response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
 
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('게시물이 성공적으로 업로드되었습니다!')),
         );
-        // Pop twice to go back to the screen before the camera
-        if (mounted) {
-          Navigator.of(context).pop();
-          Navigator.of(context).pop();
-        }
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
       } else {
-        // Try to parse the error message from the response body
         String errorMessage = '오류가 발생했습니다.';
         try {
           final responseBody = json.decode(response.body);
@@ -80,6 +83,7 @@ class _PreviewPageState extends State<PreviewPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('전송 중 오류가 발생했습니다: $e')),
       );
@@ -105,22 +109,15 @@ class _PreviewPageState extends State<PreviewPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          "미리보기",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text("미리보기", style: TextStyle(color: Colors.white)),
       ),
       body: Column(
         children: [
           Expanded(
             child: Center(
               child: widget.isVideo
-                  ? const Text("동영상 재생은 추후 구현 예정",
-                      style: TextStyle(color: Colors.white))
-                  : Image.file(
-                      File(widget.filePath),
-                      fit: BoxFit.contain,
-                    ),
+                  ? const Text("동영상 재생은 추후 구현 예정", style: TextStyle(color: Colors.white))
+                  : Image.file(File(widget.filePath), fit: BoxFit.contain),
             ),
           ),
           Container(
@@ -129,6 +126,7 @@ class _PreviewPageState extends State<PreviewPage> {
             child: TextField(
               controller: _captionController,
               maxLength: 100,
+              enabled: !_isLoading,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: "캡션을 입력하세요 (최대 100자)",
@@ -148,21 +146,14 @@ class _PreviewPageState extends State<PreviewPage> {
             ),
           ),
           GestureDetector(
-            onTap: _sendPost, // Call the send post function
+            onTap: _isLoading ? null : _sendPost,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               color: Colors.white,
               child: Center(
                 child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.black,
-                          strokeWidth: 3,
-                        ),
-                      )
+                    ? const CupertinoActivityIndicator(color: Colors.black)
                     : const Text(
                         "공유하기",
                         style: TextStyle(

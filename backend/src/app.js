@@ -61,6 +61,54 @@ app.post('/check-id-duplication', async (req, res) => {
   }
 });
 
+// --- SSO Authentication Routes ---
+
+// Check if a user is registered with a Kakao ID
+app.post('/auth/kakao', async (req, res) => {
+  const { kakaoId } = req.body;
+  if (!kakaoId) {
+    return res.status(400).json({ message: 'Kakao ID is required.' });
+  }
+
+  try {
+    const [rows] = await db.execute('SELECT id, nickname FROM users WHERE kakao_id = ?', [kakaoId]);
+    if (rows.length > 0) {
+      res.json({ isRegistered: true, user: rows[0] });
+    } else {
+      res.json({ isRegistered: false });
+    }
+  } catch (error) {
+    console.error('Error checking Kakao auth:', error);
+    res.status(500).json({ message: 'Server error during Kakao authentication.' });
+  }
+});
+
+// Sign up a new user
+app.post('/signup', async (req, res) => {
+  const { id, nickname, kakaoId } = req.body;
+  if (!id || !nickname || !kakaoId) {
+    return res.status(400).json({ message: 'ID, nickname, and Kakao ID are required.' });
+  }
+
+  try {
+    const [result] = await db.execute(
+      'INSERT INTO users (id, nickname, kakao_id) VALUES (?, ?, ?)',
+      [id, nickname, kakaoId]
+    );
+    res.status(201).json({
+      message: 'User created successfully',
+      user: { id, nickname }
+    });
+  } catch (error) {
+    // Handle potential duplicate entry for 'id' or 'kakao_id'
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: 'User with this ID or Kakao ID already exists.' });
+    }
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Server error while creating user.' });
+  }
+});
+
 // Modified route for creating a post with image upload
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   const { caption, isVideo, userId } = req.body;

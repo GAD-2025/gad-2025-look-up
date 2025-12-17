@@ -4,40 +4,42 @@ import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'main.dart'; // ✅ 메인 페이지 import
+import 'main.dart'; // 메인 페이지
+import 'user_session.dart'; // 사용자 세션
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({super.key});
+  final String kakaoId; // 카카오 ID를 받기 위한 변수
+
+  const SignupPage({super.key, required this.kakaoId});
 
   @override
   State<SignupPage> createState() => _SignupPageState();
 }
 
 class _SignupPageState extends State<SignupPage> {
-  // ===== 상태 변수들 =====
-  bool _isValidId = false; // 아이디 정규식 통과 여부
-  bool _isIdChecked = false; // 아이디 중복확인 완료 여부
-  bool _isIdAvailable = false; // 사용 가능한 아이디인지 여부
-  bool _showIdError = false;
+  // 서버 주소
+  static const String _serverBaseUrl = 'http://10.0.2.2:3000';
 
+  // ===== 상태 변수들 =====
+  bool _isLoading = false; // 로딩 상태
+  bool _isValidId = false;
+  bool _isIdChecked = false;
+  bool _isIdAvailable = false;
+  bool _showIdError = false;
   bool _isValidNickname = false;
   bool _showNicknameError = false;
-
   String _lastCheckedId = '';
 
-  // ✅ 중복확인 버튼 활성 여부
-  bool get _canPressCheckButton => _isValidId && !_isIdChecked;
+  bool get _canPressCheckButton => _isValidId && !_isIdChecked && !_isLoading;
 
-  // 컨트롤러
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _nicknameController = TextEditingController();
 
-  // 정규식
   final RegExp _idRegExp = RegExp(r'^(?=.*[a-z])(?=.*\d)[a-z0-9]{4,20}$');
   final RegExp _nicknameRegExp = RegExp(r'^[a-zA-Z가-힣]{1,10}$');
 
-  // ===== 공통 알럿 =====
   void _showAlertDialog(String title, String message) {
+    if (!mounted) return;
     showCupertinoDialog(
       context: context,
       builder: (BuildContext context) {
@@ -47,9 +49,7 @@ class _SignupPageState extends State<SignupPage> {
           actions: <Widget>[
             CupertinoDialogAction(
               child: const Text('확인'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         );
@@ -57,11 +57,11 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // ===== 아이디 중복 확인 API =====
   Future<bool?> _checkIdDuplicated(String id) async {
+    setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('https://route.nois.club:3004/check-id-duplication'),
+        Uri.parse('$_serverBaseUrl/check-id-duplication'), // URL 수정
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -69,33 +69,73 @@ class _SignupPageState extends State<SignupPage> {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        return responseData['isDuplicated'] as bool;
+        return jsonDecode(response.body)['isDuplicated'] as bool;
       } else {
-        _showAlertDialog(
-          '오류',
-          '서버 오류가 발생했습니다 (${response.statusCode}). 다시 시도해주세요.',
-        );
-        print('Failed to check ID duplication: ${response.statusCode}');
+        _showAlertDialog('오류', '서버 오류가 발생했습니다 (${response.statusCode}).');
         return null;
       }
     } catch (e) {
-      _showAlertDialog('오류', '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
-      print('Error checking ID duplication: $e');
+      _showAlertDialog('오류', '네트워크 오류가 발생했습니다.');
       return null;
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  // ===== 입력 검증 =====
+  // +++++ 신규 회원가입 제출 함수 +++++
+  Future<void> _submitSignup() async {
+    if (!(_isValidId && _isValidNickname && _isIdAvailable)) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_serverBaseUrl/signup'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({
+          'id': _idController.text.trim(),
+          'nickname': _nicknameController.text.trim(),
+          'kakaoId': widget.kakaoId,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        final user = AppUser.fromJson(responseData['user']);
+
+        // 세션에 사용자 정보 저장
+        await UserSession.saveUser(user);
+
+        // 메인 페이지로 이동 (모든 이전 페이지 제거)
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LookupMain()),
+            (route) => false,
+          );
+        }
+      } else {
+        final responseData = jsonDecode(response.body);
+        _showAlertDialog('회원가입 실패', responseData['message'] ?? '알 수 없는 오류가 발생했습니다.');
+      }
+    } catch (e) {
+      _showAlertDialog('오류', '회원가입 중 네트워크 오류가 발생했습니다.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   void _validateId() {
     final text = _idController.text.trim();
     final isValid = _idRegExp.hasMatch(text);
-
+    if (_isValidId == isValid && _showIdError == (text.isNotEmpty && !isValid)) return;
     setState(() {
       _isValidId = isValid;
       _showIdError = text.isNotEmpty && !isValid;
-
-      // ✅ 아이디를 “실제로” 바꿨을 때만 중복확인 결과를 무효화
       if (text != _lastCheckedId) {
         _isIdChecked = false;
         _isIdAvailable = false;
@@ -106,36 +146,36 @@ class _SignupPageState extends State<SignupPage> {
   void _validateNickname() {
     final text = _nicknameController.text.trim();
     final isValid = _nicknameRegExp.hasMatch(text);
+    if (_isValidNickname == isValid && _showNicknameError == (text.isNotEmpty && !isValid)) return;
     setState(() {
       _isValidNickname = isValid;
       _showNicknameError = text.isNotEmpty && !isValid;
     });
   }
 
-  // ===== 다이얼로그들 =====
-  void _showDuplicateDialog(BuildContext context) {
+  void _showDuplicateDialog() {
+    if (!mounted) return;
     showCupertinoDialog(
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: const Text('사용 중인 아이디입니다.'),
         content: const Padding(
           padding: EdgeInsets.only(top: 8.0),
-          child: Text('이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.'),
+          child: Text('다른 아이디를 입력해 주세요.'),
         ),
         actions: [
           CupertinoDialogAction(
             isDestructiveAction: true,
             child: const Text('확인'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
     );
   }
 
-  void _showAvailableDialog(BuildContext context) {
+  void _showAvailableDialog() {
+    if (!mounted) return;
     showCupertinoDialog(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -144,16 +184,13 @@ class _SignupPageState extends State<SignupPage> {
           CupertinoDialogAction(
             isDefaultAction: true,
             child: const Text('확인'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
     );
   }
 
-  // ===== 라이프사이클 =====
   @override
   void initState() {
     super.initState();
@@ -168,10 +205,9 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  // ===== UI =====
   @override
   Widget build(BuildContext context) {
-    final bool canSubmit = _isValidId && _isValidNickname && _isIdAvailable;
+    final bool canSubmit = _isValidId && _isValidNickname && _isIdAvailable && !_isLoading;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -179,14 +215,7 @@ class _SignupPageState extends State<SignupPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          '회원가입',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: const Text('회원가입', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: SingleChildScrollView(
@@ -194,15 +223,7 @@ class _SignupPageState extends State<SignupPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== 아이디 =====
-            const Text(
-              '아이디',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 15,
-                color: Colors.black87,
-              ),
-            ),
+            const Text('아이디', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Colors.black87)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -210,47 +231,29 @@ class _SignupPageState extends State<SignupPage> {
                   flex: 2,
                   child: TextField(
                     controller: _idController,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[a-z0-9]')),
-                    ],
+                    enabled: !_isLoading,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-z0-9]'))],
                     decoration: InputDecoration(
                       hintText: '아이디',
                       hintStyle: const TextStyle(color: Colors.black38),
                       filled: true,
                       fillColor: const Color(0xFFF3F3F3),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      suffixIcon: _idController.text.isNotEmpty
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      suffixIcon: _idController.text.isNotEmpty && !_isLoading
                           ? IconButton(
-                              icon: const Icon(
-                                Icons.cancel_rounded,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
+                              icon: const Icon(Icons.cancel_rounded, color: Colors.grey, size: 20),
                               onPressed: () {
-                                setState(() {
-                                  _idController.clear();
-                                  _isValidId = false;
-                                  _showIdError = false;
-                                  _isIdChecked = false;
-                                  _isIdAvailable = false;
-                                });
+                                _idController.clear();
                               },
                             )
                           : null,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: _showIdError ? Colors.red : Colors.transparent,
-                        ),
+                        borderSide: BorderSide(color: _showIdError ? Colors.red : Colors.transparent),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: _showIdError ? Colors.red : Colors.black,
-                        ),
+                        borderSide: BorderSide(color: _showIdError ? Colors.red : Colors.black),
                       ),
                     ),
                   ),
@@ -265,76 +268,28 @@ class _SignupPageState extends State<SignupPage> {
                           ? () async {
                               final id = _idController.text.trim();
                               if (id.isEmpty) return;
+                              final isDuplicated = await _checkIdDuplicated(id);
+                              if (isDuplicated == null) return;
 
-                              final bool? isDuplicated =
-                                  await _checkIdDuplicated(id);
+                              setState(() {
+                                _isIdChecked = true;
+                                _isIdAvailable = !isDuplicated;
+                                _lastCheckedId = id;
+                              });
 
-                              if (isDuplicated == null) {
-                                // 서버/네트워크 에러
-                                setState(() {
-                                  _isIdChecked = false;
-                                  _isIdAvailable = false;
-                                  _lastCheckedId = ''; // ❗ 실패했으니 체크된 아이디 초기화
-                                });
-                                return;
-                              }
-
-                              if (isDuplicated) {
-                                // ❌ 중복 아이디
-                                setState(() {
-                                  _isIdChecked = true; // "검사는 했다"
-                                  _isIdAvailable = false; // 사용 불가
-                                  _lastCheckedId = id; // 이 아이디로 검사했다는 흔적 남김
-                                });
-
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  _showDuplicateDialog(context);
-                                });
+                              if (!isDuplicated) {
+                                _showAvailableDialog();
                               } else {
-                                // ✅ 사용 가능한 아이디
-                                setState(() {
-                                  _isIdChecked = true; // "검사는 했다"
-                                  _isIdAvailable = true; // 사용 가능
-                                  _lastCheckedId = id; // 이 아이디가 OK라고 확인됨
-                                });
-
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  _showAvailableDialog(context);
-                                });
+                                _showDuplicateDialog();
                               }
-
-                              print(
-                                '✅ 상태: '
-                                '_isValidId=$_isValidId, '
-                                '_isIdChecked=$_isIdChecked, '
-                                '_isIdAvailable=$_isIdAvailable, '
-                                '_canPressCheckButton=$_canPressCheckButton',
-                              );
                             }
                           : null,
-
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _canPressCheckButton
-                            ? Colors.black
-                            : const Color(0xFFF3F3F3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        backgroundColor: _canPressCheckButton ? Colors.black : const Color(0xFFF3F3F3),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: Text(
-                        '중복확인',
-                        style: TextStyle(
-                          color: _canPressCheckButton
-                              ? Colors.white
-                              : Colors.black45,
-                          fontSize: 14,
-                        ),
-                      ),
+                      child: Text('중복확인', style: TextStyle(color: _canPressCheckButton ? Colors.white : Colors.black45, fontSize: 14)),
                     ),
                   ),
                 ),
@@ -342,116 +297,63 @@ class _SignupPageState extends State<SignupPage> {
             ),
             const SizedBox(height: 6),
             Text(
-              _showIdError
-                  ? '영문 소문자와 숫자를 모두 포함한 4~20자의 아이디를 입력해주세요.'
-                  : '영문 소문자 및 숫자 조합 4자 이상 20자 이내',
-              style: TextStyle(
-                color: _showIdError ? Colors.red : Colors.black45,
-                fontSize: 12,
-              ),
+              _showIdError ? '영문 소문자와 숫자를 모두 포함한 4~20자의 아이디를 입력해주세요.' : '영문 소문자 및 숫자 조합 4자 이상 20자 이내',
+              style: TextStyle(color: _showIdError ? Colors.red : Colors.black45, fontSize: 12),
             ),
-
             const SizedBox(height: 30),
-
-            // ===== 닉네임 =====
-            const Text(
-              '닉네임',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 15,
-                color: Colors.black87,
-              ),
-            ),
+            const Text('닉네임', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Colors.black87)),
             const SizedBox(height: 8),
             TextField(
               controller: _nicknameController,
+              enabled: !_isLoading,
               decoration: InputDecoration(
                 hintText: '닉네임',
                 hintStyle: const TextStyle(color: Colors.black38),
                 filled: true,
                 fillColor: const Color(0xFFF3F3F3),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                suffixIcon: _nicknameController.text.isNotEmpty
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                suffixIcon: _nicknameController.text.isNotEmpty && !_isLoading
                     ? IconButton(
-                        icon: const Icon(
-                          Icons.cancel_rounded,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _nicknameController.clear();
-                            _isValidNickname = false;
-                            _showNicknameError = false;
-                          });
-                        },
+                        icon: const Icon(Icons.cancel_rounded, color: Colors.grey, size: 20),
+                        onPressed: () => _nicknameController.clear(),
                       )
                     : null,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: _showNicknameError ? Colors.red : Colors.transparent,
-                  ),
+                  borderSide: BorderSide(color: _showNicknameError ? Colors.red : Colors.transparent),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: _showNicknameError ? Colors.red : Colors.black,
-                  ),
+                  borderSide: BorderSide(color: _showNicknameError ? Colors.red : Colors.black),
                 ),
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              _showNicknameError
-                  ? '한글 또는 영문 10자 이내의 닉네임을 입력해주세요.'
-                  : '한글 또는 영문 10자 이내\n닉네임은 설정에서 변경할 수 있어요.',
-              style: const TextStyle(
-                color: Colors.black45,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              _showNicknameError ? '한글 또는 영문 10자 이내의 닉네임을 입력해주세요.' : '한글 또는 영문 10자 이내\n닉네임은 설정에서 변경할 수 있어요.',
+              style: const TextStyle(color: Colors.black45, fontSize: 12, height: 1.4),
             ),
-
             const SizedBox(height: 50),
-
-            // ===== 가입 완료 버튼 =====
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: canSubmit
-                    ? () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const LookupMain(), // 메인 페이지로 이동
-                          ),
-                          (route) => false,
-                        );
-                      }
-                    : null,
+                onPressed: canSubmit ? _submitSignup : null, // +++++ 수정된 부분 +++++
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canSubmit
-                      ? Colors.black
-                      : const Color(0xFFF3F3F3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  backgroundColor: canSubmit ? Colors.black : const Color(0xFFF3F3F3),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: Text(
-                  '가입 완료',
-                  style: TextStyle(
-                    color: canSubmit ? Colors.white : Colors.black45,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                  ),
-                ),
+                child: _isLoading
+                    ? const CupertinoActivityIndicator(color: Colors.white)
+                    : Text(
+                        '가입 완료',
+                        style: TextStyle(
+                          color: canSubmit ? Colors.white : Colors.black45,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
           ],

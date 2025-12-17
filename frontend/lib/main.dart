@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,11 +14,13 @@ import 'pages/camera_page.dart';
 
 // Models
 import 'models/post_model.dart';
+import 'user_session.dart'; // 사용자 세션
 
 // --- Constants ---
 const String _serverBaseUrl = 'http://10.0.2.2:3000';
 
 void main() {
+  // Kakao SDK 초기화
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
   runApp(const LookupApp());
 }
@@ -29,7 +32,25 @@ class LookupApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const StartPage(),
+      home: FutureBuilder<AppUser?>(
+        future: UserSession.getUser(), // 저장된 사용자 정보 가져오기
+        builder: (context, snapshot) {
+          // 로딩 중일 때
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CupertinoActivityIndicator()),
+            );
+          }
+
+          // 사용자 정보가 있을 때 (자동 로그인 성공)
+          if (snapshot.hasData && snapshot.data != null) {
+            return const LookupMain();
+          }
+          
+          // 사용자 정보가 없을 때
+          return const StartPage();
+        },
+      ),
     );
   }
 }
@@ -40,6 +61,7 @@ class LookupMain extends StatefulWidget {
   @override
   State<LookupMain> createState() => _LookupMainState();
 }
+// ... (이하 코드는 변경 없음)
 
 class _LookupMainState extends State<LookupMain> {
   int _selectedIndex = 0;
@@ -496,12 +518,16 @@ class _LookupMainState extends State<LookupMain> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                post.userId,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                              Flexible(
+                                child: Text(
+                                  post.userId,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               Row(
