@@ -8,11 +8,13 @@ import '../user_session.dart'; // 사용자 세션
 class PreviewPage extends StatefulWidget {
   final String filePath;
   final bool isVideo;
+  final int feedId; // To associate the post with a feed
 
   const PreviewPage({
     super.key,
     required this.filePath,
     required this.isVideo,
+    required this.feedId,
   });
 
   @override
@@ -34,9 +36,11 @@ class _PreviewPageState extends State<PreviewPage> {
     final AppUser? currentUser = await UserSession.getUser();
 
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('오류: 로그인 정보가 없습니다. 다시 로그인해주세요.')),
-      );
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('오류: 로그인 정보가 없습니다. 다시 로그인해주세요.')),
+        );
+      }
       setState(() => _isLoading = false);
       return;
     }
@@ -54,10 +58,11 @@ class _PreviewPageState extends State<PreviewPage> {
         ),
       );
 
-      // --- 실제 사용자 ID 사용 ---
+      // --- Add all required fields ---
       request.fields['userId'] = currentUser.id;
       request.fields['caption'] = _captionController.text;
       request.fields['isVideo'] = widget.isVideo.toString();
+      request.fields['feedId'] = widget.feedId.toString(); // Include the feedId
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -68,6 +73,7 @@ class _PreviewPageState extends State<PreviewPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('게시물이 성공적으로 업로드되었습니다!')),
         );
+        // Pop both PreviewPage and CameraPage on success
         Navigator.of(context).pop();
         Navigator.of(context).pop();
       } else {

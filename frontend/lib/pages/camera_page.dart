@@ -8,6 +8,10 @@ import 'package:app_settings/app_settings.dart';
 enum CameraMode { photo, video }
 
 class CameraPage extends StatefulWidget {
+  final int feedId;
+
+  const CameraPage({super.key, required this.feedId});
+
   @override
   _CameraPageState createState() => _CameraPageState();
 }
@@ -32,13 +36,14 @@ class _CameraPageState extends State<CameraPage> {
   // PreviewPage 열고 PostModel 반환받기
   // ---------------------------
   Future<void> _openPreview(File file, {required bool isVideo}) async {
-    // Navigation to PreviewPage. No result is expected anymore.
+    // Navigation to PreviewPage, passing the feedId.
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PreviewPage(
           filePath: file.path,
           isVideo: isVideo,
+          feedId: widget.feedId, // Pass the feedId
         ),
       ),
     );

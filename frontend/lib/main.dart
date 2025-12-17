@@ -61,7 +61,6 @@ class LookupMain extends StatefulWidget {
   @override
   State<LookupMain> createState() => _LookupMainState();
 }
-// ... (이하 코드는 변경 없음)
 
 class _LookupMainState extends State<LookupMain> {
   int _selectedIndex = 0;
@@ -74,17 +73,19 @@ class _LookupMainState extends State<LookupMain> {
   bool _isTimeout = false;
   bool _isButtonDisabled = false;
   List<PostModel> feedPosts = [];
+  int? _feedId; // The ID of the currently active feed
 
   @override
   void initState() {
     super.initState();
     _loadLocation();
-    _fetchPosts(); // Load posts when the app starts
+    // _fetchPosts(); // Removed: Posts will be fetched only for a specific feed.
   }
 
-  Future<void> _fetchPosts() async {
+  // Fetch posts for a specific feed
+  Future<void> _fetchPosts(int feedId) async {
     try {
-      final url = Uri.parse('$_serverBaseUrl/api/posts');
+      final url = Uri.parse('$_serverBaseUrl/api/feeds/$feedId/posts');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -94,13 +95,39 @@ class _LookupMainState extends State<LookupMain> {
         });
       } else {
         // Handle server error
-        print('Failed to load posts');
+        print('Failed to load posts for feed $feedId: ${response.body}');
       }
     } catch (e) {
       // Handle connection error
       print('Error fetching posts: $e');
     }
   }
+
+  // Create a new feed on the backend
+  Future<int?> _createFeed(String emoji) async {
+    final url = Uri.parse('$_serverBaseUrl/api/feeds');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'emoji': emoji,
+          'location': _currentLocation,
+        }),
+      );
+      if (response.statusCode == 201) {
+        final responseBody = json.decode(response.body);
+        return responseBody['feedId'];
+      } else {
+        print('Failed to create feed: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error creating feed: $e');
+      return null;
+    }
+  }
+
 
   Future<void> _loadLocation() async {
     bool serviceEnabled;
@@ -222,16 +249,16 @@ class _LookupMainState extends State<LookupMain> {
       onTap: isDisabled
           ? null
           : () async {
-              // Navigate to the camera and wait for it to complete.
-              // The PreviewPage will pop itself and the CameraPage on success.
+              if (_feedId == null) return; // Should not happen if button is visible
+
+              // Navigate to the camera, passing the feedId
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CameraPage()),
+                MaterialPageRoute(builder: (_) => CameraPage(feedId: _feedId!)),
               );
 
               // When returning from the camera flow, refresh the feed.
-              // This will show the newly uploaded post.
-              _fetchPosts();
+              _fetchPosts(_feedId!);
             },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -309,17 +336,30 @@ class _LookupMainState extends State<LookupMain> {
 
           if (emoji == null || emoji is! String || emoji.isEmpty) return;
 
-          setState(() {
-            _emoji = emoji;
-            _hasFeed = true;
-            _showTimer = true;
-            _isTimeout = false;
-            _remainingSeconds = 180;
-            _isButtonDisabled = true;
-          });
+          // Create feed on the backend
+          final newFeedId = await _createFeed(emoji);
 
-          _showToast();
-          _startTimer();
+          if (newFeedId != null) {
+            setState(() {
+              _feedId = newFeedId; // Store the new feed ID
+              _emoji = emoji;
+              _hasFeed = true;
+              _showTimer = true;
+              _isTimeout = false;
+              _remainingSeconds = 180;
+              _isButtonDisabled = true;
+            });
+
+            _showToast();
+            _startTimer();
+          } else {
+            // Show error to user if feed creation fails
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('피드를 생성하는데 실패했습니다. 다시 시도해주세요.')),
+              );
+            }
+          }
         },
         backgroundColor: _isButtonDisabled ? Colors.grey : Colors.black,
         elevation: _isButtonDisabled ? 0 : 6,
@@ -492,7 +532,7 @@ class _LookupMainState extends State<LookupMain> {
                           loadingBuilder: (context, child, progress) {
                             return progress == null
                                 ? child
-                                : Center(child: CircularProgressIndicator());
+                                : const Center(child: CircularProgressIndicator());
                           },
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
@@ -508,7 +548,7 @@ class _LookupMainState extends State<LookupMain> {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             gradient: LinearGradient(
                               colors: [Colors.black54, Colors.transparent],
                               begin: Alignment.bottomCenter,
@@ -530,14 +570,14 @@ class _LookupMainState extends State<LookupMain> {
                                   ),
                                 ),
                               ),
-                              Row(
+                              const Row(
                                 children: [
-                                  const Icon(Icons.favorite, 
+                                  Icon(Icons.favorite, 
                                       color: Colors.white, size: 14),
-                                  const SizedBox(width: 4),
+                                  SizedBox(width: 4),
                                   Text(
                                     "0",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
                                     ),
