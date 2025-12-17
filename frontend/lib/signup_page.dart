@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'main.dart'; // ✅ 메인 페이지 import
+import 'config.dart'; // Import the config file
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -60,8 +61,9 @@ class _SignupPageState extends State<SignupPage> {
   // ===== 아이디 중복 확인 API =====
   Future<bool?> _checkIdDuplicated(String id) async {
     try {
+      final String baseUrl = getBaseUrl();
       final response = await http.post(
-        Uri.parse('https://route.nois.club:3004/check-id-duplication'),
+        Uri.parse('$baseUrl/check-id-duplication'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },

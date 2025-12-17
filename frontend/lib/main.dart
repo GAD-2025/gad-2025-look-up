@@ -15,6 +15,9 @@ import 'pages/camera_page.dart';
 // Models
 import 'models/post_model.dart';
 
+// Config
+import 'config.dart';
+
 void main() {
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
   runApp(const LookupApp());
@@ -60,7 +63,8 @@ class _LookupMainState extends State<LookupMain> {
 
   Future<void> _fetchPosts() async {
     try {
-      final url = Uri.parse('http://10.0.2.2:3000/api/posts');
+      final String baseUrl = getBaseUrl();
+      final url = Uri.parse('$baseUrl/api/posts');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -110,6 +114,12 @@ class _LookupMainState extends State<LookupMain> {
       pos.latitude,
       pos.longitude,
     );
+    if (placemarks.isEmpty) {
+      setState(() {
+        _currentLocation = "위치 정보 없음";
+      });
+      return;
+    }
 
     final place = placemarks.first;
     final location = "${place.locality ?? ''} ${place.subLocality ?? ''}"
