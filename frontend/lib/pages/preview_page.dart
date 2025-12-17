@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../models/post_model.dart';
 
 class PreviewPage extends StatefulWidget {
   final String filePath;
@@ -20,47 +19,76 @@ class PreviewPage extends StatefulWidget {
 
 class _PreviewPageState extends State<PreviewPage> {
   final TextEditingController _captionController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _sendPost() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     // TODO: Replace 'gad123' with the actual logged-in user's ID
     const userId = 'gad123';
 
-    final newPost = PostModel(
-      imagePath: widget.filePath,
-      caption: _captionController.text,
-      isVideo: widget.isVideo,
-      userId: userId,
-    );
-
-    // NOTE: 10.0.2.2 is the IP address for the host machine's localhost when using the Android emulator.
-    // For iOS simulator or a physical device, replace with your computer's network IP.
+    // NOTE: 10.0.2.2 is for Android emulator. Use localhost or your IP for other platforms.
     final url = Uri.parse('http://10.0.2.2:3000/api/posts');
-
+    
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(newPost.toJson()),
+      // Create a multipart request
+      final request = http.MultipartRequest('POST', url);
+
+      // Add the file
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image', // This key must match the one in backend: upload.single('image')
+          widget.filePath,
+        ),
       );
+
+      // Add other fields
+      request.fields['userId'] = userId;
+      request.fields['caption'] = _captionController.text;
+      request.fields['isVideo'] = widget.isVideo.toString();
+
+      // Send the request
+      final streamedResponse = await request.send();
+      
+      // Get the response
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('게시물이 성공적으로 업로드되었습니다!')),
         );
         // Pop twice to go back to the screen before the camera
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        }
       } else {
+        // Try to parse the error message from the response body
+        String errorMessage = '오류가 발생했습니다.';
+        try {
+          final responseBody = json.decode(response.body);
+          errorMessage = responseBody['message'] ?? '오류: ${response.body}';
+        } catch (e) {
+          errorMessage = '오류: ${response.body}';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류: ${response.body}')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('전송 중 오류가 발생했습니다: $e')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -125,15 +153,24 @@ class _PreviewPageState extends State<PreviewPage> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               color: Colors.white,
-              child: const Center(
-                child: Text(
-                  "공유하기",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              child: Center(
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : const Text(
+                        "공유하기",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ),

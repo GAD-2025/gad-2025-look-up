@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
@@ -14,6 +13,9 @@ import 'pages/camera_page.dart';
 
 // Models
 import 'models/post_model.dart';
+
+// --- Constants ---
+const String _serverBaseUrl = 'http://10.0.2.2:3000';
 
 void main() {
   KakaoSdk.init(nativeAppKey: '03033934ad0bba787529944420a0e059');
@@ -60,7 +62,7 @@ class _LookupMainState extends State<LookupMain> {
 
   Future<void> _fetchPosts() async {
     try {
-      final url = Uri.parse('http://10.0.2.2:3000/api/posts');
+      final url = Uri.parse('$_serverBaseUrl/api/posts');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -198,12 +200,15 @@ class _LookupMainState extends State<LookupMain> {
       onTap: isDisabled
           ? null
           : () async {
+              // Navigate to the camera and wait for it to complete.
+              // The PreviewPage will pop itself and the CameraPage on success.
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => CameraPage()),
               );
 
-              // When returning from the camera flow, refresh the feed
+              // When returning from the camera flow, refresh the feed.
+              // This will show the newly uploaded post.
               _fetchPosts();
             },
       child: Container(
@@ -446,6 +451,8 @@ class _LookupMainState extends State<LookupMain> {
               ),
               itemBuilder: (context, index) {
                 final post = feedPosts[index];
+                final imageUrl = '$_serverBaseUrl${post.imagePath}';
+
                 return GestureDetector(
                   onTap: () {
                     print("게시물 클릭: ${post.userId}");
@@ -454,11 +461,23 @@ class _LookupMainState extends State<LookupMain> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          File(post.imagePath),
+                        child: Image.network(
+                          imageUrl,
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
+                          // Optional: Add loading and error builders for better UX
+                          loadingBuilder: (context, child, progress) {
+                            return progress == null
+                                ? child
+                                : Center(child: CircularProgressIndicator());
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[300],
+                              child: Icon(Icons.error_outline, color: Colors.grey[600]),
+                            );
+                          },
                         ),
                       ),
                       Positioned(

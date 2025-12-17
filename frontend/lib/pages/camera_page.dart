@@ -3,7 +3,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../pages/preview_page.dart';
-import '../models/post_model.dart';
 import 'package:app_settings/app_settings.dart';
 
 enum CameraMode { photo, video }
@@ -33,7 +32,8 @@ class _CameraPageState extends State<CameraPage> {
   // PreviewPage 열고 PostModel 반환받기
   // ---------------------------
   Future<void> _openPreview(File file, {required bool isVideo}) async {
-    final result = await Navigator.push(
+    // Navigation to PreviewPage. No result is expected anymore.
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PreviewPage(
@@ -42,13 +42,6 @@ class _CameraPageState extends State<CameraPage> {
         ),
       ),
     );
-
-    if (!mounted) return;
-
-    // PreviewPage에서 PostModel을 반환하면 CameraPage 종료하며 전달
-    if (result != null && result is PostModel) {
-      Navigator.pop(context, result);
-    }
   }
 
   @override
