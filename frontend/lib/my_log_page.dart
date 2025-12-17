@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'user_session.dart'; // Import the user session
 
 class MyLogPage extends StatefulWidget {
   const MyLogPage({super.key});
@@ -10,6 +11,7 @@ class MyLogPage extends StatefulWidget {
 
 class _MyLogPageState extends State<MyLogPage> {
   int _selectedTab = 0; // 0 = grid, 1 = map
+  AppUser? _user; // State variable to hold user data
 
   late GoogleMapController _mapController;
 
@@ -17,6 +19,21 @@ class _MyLogPageState extends State<MyLogPage> {
     target: LatLng(37.5665, 126.9780),
     zoom: 15,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await UserSession.getUser();
+    if (mounted) {
+      setState(() {
+        _user = user;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,17 +47,17 @@ class _MyLogPageState extends State<MyLogPage> {
         const SizedBox(height: 4),
 
         // ============= 닉네임 =============
-        const Text(
-          "루거비 님",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          _user != null ? '${_user!.nickname} 님' : '로딩 중...',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
 
         const SizedBox(height: 4),
 
         // ============= 아이디 =============
-        const Text(
-          "@lookup_user",
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+        Text(
+          _user != null ? '@${_user!.id}' : '',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
 
         const SizedBox(height: 30),
