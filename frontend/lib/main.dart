@@ -503,7 +503,7 @@ class _LookupMainState extends State<LookupMain> {
           ),
         if (feedPosts.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 160),
+            padding: const EdgeInsets.only(top: 150), // Further reduced top padding
             child: GridView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               itemCount: feedPosts.length,

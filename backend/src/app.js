@@ -170,7 +170,19 @@ app.get('/api/feeds/:feedId/posts', async (req, res) => {
   }
 
   try {
-    const [rows] = await db.execute('SELECT * FROM posts WHERE feed_id = ? ORDER BY created_at DESC', [feedId]);
+    const [rows] = await db.execute(`
+      SELECT
+        p.image_path,
+        p.caption,
+        p.is_video,
+        p.user_id,
+        p.created_at,
+        u.nickname
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.feed_id = ?
+      ORDER BY p.created_at DESC
+    `, [feedId]);
     res.json(rows);
   } catch (error) {
     console.error(`Error fetching posts for feed ${feedId}:`, error);
