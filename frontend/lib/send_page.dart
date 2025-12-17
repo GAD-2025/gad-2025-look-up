@@ -44,14 +44,19 @@ class _SendPageState extends State<SendPage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const Align(
+          Align(
             alignment: Alignment.centerRight,
             child: Padding(
-              padding: EdgeInsets.only(top: 16.0, right: 20.0),
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Colors.white,
-                size: 32,
+              padding: const EdgeInsets.only(top: 16.0, right: 20.0),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
               ),
             ),
           ),
