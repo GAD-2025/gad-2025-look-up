@@ -9,15 +9,28 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY kakao_id (kakao_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS feeds (
+  id INT NOT NULL AUTO_INCREMENT,
+  emoji VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  location VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS posts (
   id INT NOT NULL AUTO_INCREMENT,
   image_path VARCHAR(255) NOT NULL,
   caption TEXT,
   is_video TINYINT(1) DEFAULT 0,
   user_id VARCHAR(255) NOT NULL,
+  feed_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY user_id (user_id),
+  KEY feed_id (feed_id),
   CONSTRAINT posts_ibfk_1
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT posts_ibfk_2
+    FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
