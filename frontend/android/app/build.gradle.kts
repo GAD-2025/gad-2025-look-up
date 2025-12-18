@@ -23,7 +23,7 @@ android {
     signingConfigs {
         create("release") {
             if (keyPropertiesFile.exists()) {
-                storeFile = file(keyProperties.getProperty("storeFile"))
+                storeFile = file("upload-keystore.jks")
                 storePassword = keyProperties.getProperty("storePassword")
                 keyAlias = keyProperties.getProperty("keyAlias")
                 keyPassword = keyProperties.getProperty("keyPassword")
